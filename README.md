@@ -1,4 +1,4 @@
-# The Schedule for KMUTT's Computer Engineering Year 2 semester one.
+# The Schedule for KMUTT's Computer Engineering (Inter) Year 2 semester one.
 I made... er, I mean I used AI to create this, because the schedule that KMUTT provides wasn't visually pleasing... <br>
 It works on both PC and mobile, with PC having the horitozal view and the mobile version having the vertical view.
 
