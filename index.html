@@ -59,7 +59,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
             display: flex;
-            border-left: 5px solid;
+            border-left: 5px solid var(--border-color);
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
@@ -67,7 +67,7 @@
         .agenda-class-time { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem 1.25rem; font-size: 0.8rem; font-weight: 600; color: var(--color-text-body); background-color: #f8f9fa; }
         .agenda-class-details { padding: 1rem; flex-grow: 1; }
         .agenda-class .code { font-weight: 600; color: var(--text-color); font-size: 1rem; margin-bottom: 0.25rem; }
-        .agenda-class .details, .agenda-class .instructor { font-weight: 500; color: var(--color-text-light); font-size: 0.875rem; line-height: 1.5; }
+        .agenda-class .details, .agenda-class .instructor { font-weight: 500; color: var(--text-color-light); font-size: 0.875rem; line-height: 1.5; }
         .agenda-class .instructor { text-transform: uppercase; }
         .agenda-class .details { text-transform: none; }
         
@@ -85,14 +85,28 @@
             .time-header { grid-row: 1; text-align: left; padding-left: 10px; padding-top: 1.5rem; font-weight: 500; color: var(--color-text-light); font-size: 0.8rem; border-bottom: 1px solid var(--color-border); }
             .day-label { font-weight: 600; color: var(--color-text-header); font-size: 1rem; border-top: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; text-align: center; position: sticky; left: 0; background-color: white; z-index: 15; }
             
+            /* CORRECTED: Clean, solid grid lines */
             .grid-cell-background {
                 border-top: 1px solid var(--color-border);
-                border-left: 1px dashed var(--color-border); 
+                border-left: 1px solid var(--color-border); 
             }
 
-            .class-block { z-index: 10; margin: 10px 5px; padding: 10px 15px; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; min-height: 100px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+            .class-block { 
+                z-index: 10; 
+                margin: 10px 5px; 
+                padding: 10px 15px; 
+                border-radius: 8px; 
+                overflow: hidden; 
+                display: flex; 
+                flex-direction: column; 
+                justify-content: center; 
+                box-sizing: border-box; 
+                min-height: 100px; 
+                transition: transform 0.3s ease, box-shadow 0.3s ease; 
+                border-left: 4px solid var(--border-color);
+            }
             .class-block .code { font-weight: 600; color: var(--text-color); font-size: 0.9rem; margin-bottom: 4px; }
-            .class-block .details, .class-block .instructor { font-weight: 400; color: var(--color-text-light); font-size: 0.8rem; line-height: 1.4; text-transform: uppercase; }
+            .class-block .details, .class-block .instructor { font-weight: 400; color: var(--text-color-light); font-size: 0.8rem; line-height: 1.4; text-transform: uppercase; }
         }
 
         /* --- CURRENT CLASS HIGHLIGHT --- */
@@ -105,13 +119,13 @@
         }
 
         /* --- COLOR PALETTE --- */
-        .color-1 { --text-color: #e65100; border-color: #ff9800; --highlight-glow: #ff980099; }
-        .color-2 { --text-color: #0d47a1; border-color: #2196f3; --highlight-glow: #2196f399; }
-        .color-3 { --text-color: #1b5e20; border-color: #4caf50; --highlight-glow: #4caf5099; }
-        .color-4 { --text-color: #4a148c; border-color: #9c27b0; --highlight-glow: #9c27b099; }
-        .color-5 { --text-color: #b71c1c; border-color: #f44336; --highlight-glow: #f4433699; }
-        .color-6 { --text-color: #004d40; border-color: #009688; --highlight-glow: #00968899; }
-        .color-9 { --text-color: #f57f17; border-color: #fbc02d; --highlight-glow: #fbc02d99; }
+        .color-1 { --text-color: #e65100; --border-color: #ff9800; --highlight-glow: #ff980099; --text-color-light: #f57c00; }
+        .color-2 { --text-color: #0d47a1; --border-color: #2196f3; --highlight-glow: #2196f399; --text-color-light: #1976d2; }
+        .color-3 { --text-color: #1b5e20; --border-color: #4caf50; --highlight-glow: #4caf5099; --text-color-light: #388e3c; }
+        .color-4 { --text-color: #4a148c; --border-color: #9c27b0; --highlight-glow: #9c27b099; --text-color-light: #7b1fa2; }
+        .color-5 { --text-color: #b71c1c; --border-color: #f44336; --highlight-glow: #f4433699; --text-color-light: #d32f2f; }
+        .color-6 { --text-color: #004d40; --border-color: #009688; --highlight-glow: #00968899; --text-color-light: #00796b; }
+        .color-9 { --text-color: #f57f17; --border-color: #fbc02d; --highlight-glow: #fbc02d99; --text-color-light: #f9a825; }
         
         @media (min-width: 1024px) {
             .color-1 { background-color: #fff4e5; }
@@ -166,12 +180,10 @@
                 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
                 const timeHeaders = ["8:00", "8:30", "9:00", "9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "1:00", "1:30", "2:00", "2:30", "3:00", "3:30", "4:00", "4:30", "5:00", "5:30"];
                 
-                // Create corner
                 const corner = document.createElement('div');
                 corner.style.cssText = "grid-row: 1; grid-column: 1; border-bottom: 1px solid var(--color-border); position: sticky; left: 0; background: white; z-index: 20;";
                 grid.appendChild(corner);
 
-                // Create time headers
                 for (let j = 0; j < timeHeaders.length; j++) {
                     const timeHeader = document.createElement('div');
                     timeHeader.className = 'time-header';
@@ -180,7 +192,6 @@
                     grid.appendChild(timeHeader);
                 }
 
-                // Create day labels and background cells
                 for (let i = 0; i < days.length; i++) {
                     const dayLabel = document.createElement('div');
                     dayLabel.className = 'day-label';
@@ -236,7 +247,6 @@
         });
     }
 
-    // Run immediately and then every minute
     highlightCurrentClass();
     setInterval(highlightCurrentClass, 60000);
 </script>
