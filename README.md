@@ -16,4 +16,4 @@ https://muhammad-asad-aziz.github.io/Schedule.github.io/
 - [ ] Highlight ongoing classes
 - [ ] Add custom colors
 - [ ] Function to add and remove courses
-- [ ] Actually learn how to use HTML, CSS, and Javascript so that you won't have to castigate AI to do it.  
+- [ ] ~Actually learn how to use HTML, CSS, and Javascript so that you won't have to castigate AI to do it.~
