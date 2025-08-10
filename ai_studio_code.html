@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Class Schedule</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --color-background: #ffffff;
+            --color-container-bg: #f9fafb;
+            --color-border: #e5e7eb;
+            --color-text-header: #111827;
+            --color-text-body: #374151;
+            --color-text-light: #6b7280;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: var(--font-family-sans);
+            background-color: var(--color-container-bg);
+        }
+
+        .schedule-container {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding: 1rem;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--color-text-header);
+            margin: 0 0 1.5rem 0;
+            padding: 0 0.5rem;
+        }
+
+        /* --- MOBILE AGENDA VIEW --- */
+        .agenda-view {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .agenda-day {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .agenda-day-header {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--color-text-header);
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--color-border);
+            margin: 0 0.5rem;
+        }
+
+        .agenda-class {
+            background-color: var(--color-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            display: flex;
+            border-left: 5px solid; /* Color accent will go here */
+            overflow: hidden;
+        }
+
+        .agenda-class-time {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-text-body);
+            background-color: #f8f9fa;
+        }
+        
+        .agenda-class-details {
+            padding: 1rem;
+            flex-grow: 1;
+        }
+
+        .agenda-class .code { font-weight: 600; color: var(--text-color); font-size: 1rem; margin-bottom: 0.25rem; }
+        .agenda-class .details, .agenda-class .instructor { font-weight: 500; color: var(--color-text-light); font-size: 0.875rem; line-height: 1.5; }
+        .agenda-class .instructor { text-transform: uppercase; }
+        .agenda-class .details { text-transform: none; }
+
+
+        /* Hide Desktop Grid on Mobile */
+        .desktop-grid-container {
+            display: none;
+        }
+
+        /* --- DESKTOP GRID VIEW --- */
+        /* This media query activates the desktop styles on screens wider than 1024px */
+        @media (min-width: 1024px) {
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .schedule-container {
+                max-width: 1800px;
+                background-color: var(--color-background);
+                border-radius: 12px;
+                box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+                overflow-x: auto;
+                border: 1px solid var(--color-border);
+                padding: 0;
+            }
+
+            /* Hide mobile agenda on desktop */
+            .agenda-view {
+                display: none;
+            }
+
+            /* Show desktop grid */
+            .desktop-grid-container {
+                display: block;
+            }
+            
+            h1 {
+                padding: 1.5rem 2rem;
+                margin: 0;
+                border-bottom: 1px solid var(--color-border);
+                white-space: nowrap;
+            }
+
+            .schedule-grid {
+                display: grid;
+                grid-template-columns: 120px repeat(21, minmax(70px, 1fr));
+                grid-template-rows: 60px repeat(5, 120px);
+            }
+
+            .time-header { grid-row: 1; text-align: left; padding-left: 10px; padding-top: 1.5rem; font-weight: 500; color: var(--color-text-light); font-size: 0.8rem; border-bottom: 1px solid var(--color-border); border-left: 1px solid var(--color-border-light); }
+            .day-label { font-weight: 600; color: var(--color-text-header); font-size: 1rem; border-top: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; text-align: center; position: sticky; left: 0; background-color: white; z-index: 15; }
+            .grid-cell-background { border-top: 1px solid var(--color-border); border-left: 1px solid var(--color-border-light); }
+            .grid-cell-background:nth-of-type(2n) { border-left-style: dashed; }
+
+            .class-block { z-index: 10; margin: 10px 5px; padding: 10px 15px; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; min-height: 100px; }
+            .class-block .code { font-weight: 600; color: var(--text-color); font-size: 0.9rem; margin-bottom: 4px; }
+            .class-block .details, .class-block .instructor { font-weight: 400; color: var(--color-text-light); font-size: 0.8rem; line-height: 1.4; text-transform: uppercase; }
+        }
+
+        /* Color Palette */
+        .color-1 { --text-color: #e65100; border-color: #ff9800; }
+        .color-2 { --text-color: #0d47a1; border-color: #2196f3; }
+        .color-3 { --text-color: #1b5e20; border-color: #4caf50; }
+        .color-4 { --text-color: #4a148c; border-color: #9c27b0; }
+        .color-5 { --text-color: #b71c1c; border-color: #f44336; }
+        .color-6 { --text-color: #004d40; border-color: #009688; }
+        .color-9 { --text-color: #f57f17; border-color: #fbc02d; }
+        
+        /* Desktop Block BG Colors */
+        @media (min-width: 1024px) {
+            .color-1 { background-color: #fff4e5; }
+            .color-2 { background-color: #e3f2fd; }
+            .color-3 { background-color: #e8f5e9; }
+            .color-4 { background-color: #f3e5f5; }
+            .color-5 { background-color: #ffebee; }
+            .color-6 { background-color: #e0f2f1; }
+            .color-9 { background-color: #fffde7; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="schedule-container">
+    <h1>Weekly Class Schedule</h1>
+    
+    <!-- MOBILE AGENDA VIEW -->
+    <div class="agenda-view">
+        <!-- MONDAY -->
+        <div class="agenda-day">
+            <div class="agenda-day-header">Monday</div>
+            <div class="agenda-class color-1">
+                <div class="agenda-class-time"><span>9:30</span><span>12:30</span></div>
+                <div class="agenda-class-details"><div class="code">LNG321 S2</div><div class="details">CB1301</div><div class="instructor">RACHANEE</div></div>
+            </div>
+        </div>
+        <!-- TUESDAY -->
+        <div class="agenda-day">
+            <div class="agenda-day-header">Tuesday</div>
+            <div class="agenda-class color-3">
+                <div class="agenda-class-time"><span>8:30</span><span>10:00</span></div>
+                <div class="agenda-class-details"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div>
+            </div>
+            <div class="agenda-class color-4">
+                <div class="agenda-class-time"><span>10:30</span><span>12:30</span></div>
+                <div class="agenda-class-details"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div>
+            </div>
+            <div class="agenda-class color-2">
+                <div class="agenda-class-time"><span>1:30</span><span>5:30</span></div>
+                <div class="agenda-class-details"><div class="code">CPE231 S31</div><div class="details">CPE1121</div><div class="instructor">Peerapon</div></div>
+            </div>
+        </div>
+        <!-- WEDNESDAY -->
+        <div class="agenda-day">
+            <div class="agenda-day-header">Wednesday</div>
+            <div class="agenda-class color-5">
+                <div class="agenda-class-time"><span>10:30</span><span>12:30</span></div>
+                <div class="agenda-class-details"><div class="code">GEN101 S40</div><div class="details">GYM (KFC 3rd Floor)</div><div class="instructor">Nanthanan</div></div>
+            </div>
+            <div class="agenda-class color-6">
+                <div class="agenda-class-time"><span>1:30</span><span>4:30</span></div>
+                <div class="agenda-class-details"><div class="code">GEN231 S35</div><div class="details">ONLINE</div><div class="instructor">Suthidee</div></div>
+            </div>
+        </div>
+        <!-- THURSDAY -->
+        <div class="agenda-day">
+            <div class="agenda-day-header">Thursday</div>
+            <div class="agenda-class color-9">
+                <div class="agenda-class-time"><span>8:30</span><span>12:30</span></div>
+                <div class="agenda-class-details"><div class="code">CPE222 S32</div><div class="details">LIB108</div><div class="instructor">Suthatip, Pongsagon</div></div>
+            </div>
+        </div>
+        <!-- FRIDAY -->
+        <div class="agenda-day">
+            <div class="agenda-day-header">Friday</div>
+            <div class="agenda-class color-3">
+                <div class="agenda-class-time"><span>8:30</span><span>10:00</span></div>
+                <div class="agenda-class-details"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div>
+            </div>
+            <div class="agenda-class color-4">
+                <div class="agenda-class-time"><span>11:30</span><span>12:30</span></div>
+                <div class="agenda-class-details"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DESKTOP GRID VIEW -->
+    <div class="desktop-grid-container">
+        <div class="schedule-grid">
+            <div style="grid-row: 1; grid-column: 1; border-bottom: 1px solid var(--color-border); position: sticky; left: 0; background: white; z-index: 20;"></div>
+            <div class="time-header" style="grid-column: 2;">8:00</div>
+            <div class="time-header" style="grid-column: 3;">8:30</div>
+            <div class="time-header" style="grid-column: 4;">9:00</div>
+            <div class="time-header" style="grid-column: 5;">9:30</div>
+            <div class="time-header" style="grid-column: 6;">10:00</div>
+            <div class="time-header" style="grid-column: 7;">10:30</div>
+            <div class="time-header" style="grid-column: 8;">11:00</div>
+            <div class="time-header" style="grid-column: 9;">11:30</div>
+            <div class="time-header" style="grid-column: 10;">12:00</div>
+            <div class="time-header" style="grid-column: 11;">12:30</div>
+            <div class="time-header" style="grid-column: 12;">1:00</div>
+            <div class="time-header" style="grid-column: 13;">1:30</div>
+            <div class="time-header" style="grid-column: 14;">2:00</div>
+            <div class="time-header" style="grid-column: 15;">2:30</div>
+            <div class="time-header" style="grid-column: 16;">3:00</div>
+            <div class="time-header" style="grid-column: 17;">3:30</div>
+            <div class="time-header" style="grid-column: 18;">4:00</div>
+            <div class="time-header" style="grid-column: 19;">4:30</div>
+            <div class="time-header" style="grid-column: 20;">5:00</div>
+            <div class="time-header" style="grid-column: 21;">5:30</div>
+            
+            <script>
+                const grid = document.querySelector('.schedule-grid');
+                const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+                for (let i = 0; i < days.length; i++) {
+                    const dayLabel = document.createElement('div');
+                    dayLabel.className = 'day-label';
+                    dayLabel.textContent = days[i];
+                    dayLabel.style.gridRow = i + 2;
+                    grid.appendChild(dayLabel);
+                    
+                    for(let j = 0; j < 21; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'grid-cell-background';
+                        cell.style.gridRow = i + 2;
+                        cell.style.gridColumn = j + 2;
+                        grid.appendChild(cell);
+                    }
+                }
+            </script>
+            
+            <div class="class-block color-1" style="grid-row: 2; grid-column: 5 / 11;"><div class="code">LNG321 S2</div><div class="details">CB1301</div><div class="instructor">RACHANEE</div></div>
+            <div class="class-block color-3" style="grid-row: 3; grid-column: 3 / 6;"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div>
+            <div class="class-block color-4" style="grid-row: 3; grid-column: 7 / 11;"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div>
+            <div class="class-block color-2" style="grid-row: 3; grid-column: 13 / 22;"><div class="code">CPE231 S31</div><div class="details">CPE1121</div><div class="instructor">Peerapon</div></div>
+            <div class="class-block color-5" style="grid-row: 4; grid-column: 7 / 11;"><div class="code">GEN101 S40</div><div class="details">GYM (KFC 3rd Floor)</div><div class="instructor">Nanthanan</div></div>
+            <div class="class-block color-6" style="grid-row: 4; grid-column: 13 / 19;"><div class="code">GEN231 S35</div><div class="details">ONLINE</div><div class="instructor">Suthidee</div></div>
+            <div class="class-block color-9" style="grid-row: 5; grid-column: 3 / 11;"><div class="code">CPE222 S32</div><div class="details">LIB108</div><div class="instructor">Suthatip, Pongsagon</div></div>
+            <div class="class-block color-3" style="grid-row: 6; grid-column: 3 / 6;"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div>
+            <div class="class-block color-4" style="grid-row: 6; grid-column: 9 / 11;"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
