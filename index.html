@@ -16,7 +16,7 @@
             --color-text-header: #111827;
             --color-text-body: #374151;
             --color-text-light: #6b7280;
-            --highlight-glow: #007bff; /* A nice blue glow for the current class */
+            --highlight-glow: #007bff;
         }
         
         html, body {
@@ -44,7 +44,7 @@
             padding: 0 0.5rem;
         }
 
-        /* --- MOBILE AGENDA VIEW --- */
+        /* --- MOBILE AGENDA VIEW (Default) --- */
         .agenda-view {
             display: flex;
             flex-direction: column;
@@ -74,7 +74,7 @@
         /* Hide Desktop Grid on Mobile */
         .desktop-grid-container { display: none; }
 
-        /* --- DESKTOP GRID VIEW --- */
+        /* --- DESKTOP GRID VIEW (Activates on screens > 1024px) --- */
         @media (min-width: 1024px) {
             body { display: flex; justify-content: center; align-items: center; }
             .schedule-container { max-width: 1800px; background-color: var(--color-background); border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); overflow-x: auto; border: 1px solid var(--color-border); padding: 0; }
@@ -83,10 +83,14 @@
             h1 { padding: 1.5rem 2rem; margin: 0; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
 
             .schedule-grid { display: grid; grid-template-columns: 120px repeat(21, minmax(70px, 1fr)); grid-template-rows: 60px repeat(5, 120px); }
-            .time-header { grid-row: 1; text-align: left; padding-left: 10px; padding-top: 1.5rem; font-weight: 500; color: var(--color-text-light); font-size: 0.8rem; border-bottom: 1px solid var(--color-border); border-left: 1px solid var(--color-border-light); }
+            .time-header { grid-row: 1; text-align: left; padding-left: 10px; padding-top: 1.5rem; font-weight: 500; color: var(--color-text-light); font-size: 0.8rem; border-bottom: 1px solid var(--color-border); }
             .day-label { font-weight: 600; color: var(--color-text-header); font-size: 1rem; border-top: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; text-align: center; position: sticky; left: 0; background-color: white; z-index: 15; }
-            .grid-cell-background { border-top: 1px solid var(--color-border); border-left: 1px solid var(--color-border-light); }
-            .grid-cell-background:nth-of-type(2n) { border-left-style: dashed; }
+            
+            /* NEW: Replaced grid background with vertical dashed lines */
+            .grid-cell-background {
+                border-top: 1px solid var(--color-border);
+                border-left: 2px dashed #333; /* The new dashed line style */
+            }
 
             .class-block { z-index: 10; margin: 10px 5px; padding: 10px 15px; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; min-height: 100px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
             .class-block .code { font-weight: 600; color: var(--text-color); font-size: 0.9rem; margin-bottom: 4px; }
@@ -99,7 +103,7 @@
             box-shadow: 0 0 12px 4px var(--highlight-glow);
         }
         @media (min-width: 1024px) {
-           .current-class { transform: scale(1.02); } /* Slightly less dramatic on desktop */
+           .current-class { transform: scale(1.02); }
         }
 
 
@@ -199,15 +203,12 @@
 <script>
     function highlightCurrentClass() {
         const now = new Date();
-        // JavaScript's getDay() is 0=Sun, 1=Mon... We need to match our data-day attributes.
         const currentDay = now.getDay();
         const currentMinutes = now.getHours() * 60 + now.getMinutes();
         
-        // This selector works for both mobile and desktop views
         const classes = document.querySelectorAll('[data-day]');
 
         classes.forEach(el => {
-            // First, remove the highlight from any class to reset the state
             el.classList.remove('current-class');
 
             const classDay = parseInt(el.dataset.day, 10);
@@ -223,10 +224,8 @@
         });
     }
 
-    // Run the function immediately on page load
+    // Run immediately and then every minute
     highlightCurrentClass();
-
-    // Then, run it again every minute to keep it updated
     setInterval(highlightCurrentClass, 60000);
 </script>
 
