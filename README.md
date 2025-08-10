@@ -1,2 +1,2 @@
-# Schedule.github.io
-## eyo?
+# The Schedule for KMUTT's Computer Engineering Year 2 semester one.
+I made... er, I mean I used AI to create this cause the schedule that KMUTT provides wasn't visually pleasing...
