@@ -13,7 +13,7 @@ https://muhammad-asad-aziz.github.io/Schedule.github.io/
 <img width="auto" height="auto" alt="Mobile Version" src="https://github.com/user-attachments/assets/eeb9f4a6-707c-4d0d-81af-17f0a284e840" />
 
 # Things to maybe do when I feel like it:
-- [ ] Highlight ongoing classes
+- [x] Highlight ongoing classes
 - [ ] Add custom colors
 - [ ] Function to add and remove courses
 - [ ] ~Actually learn how to use HTML, CSS, and Javascript so that you won't have to castigate AI to do it.~
