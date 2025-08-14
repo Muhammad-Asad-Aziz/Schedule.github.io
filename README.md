@@ -7,10 +7,10 @@ https://muhammad-asad-aziz.github.io/Schedule.github.io/
 
 # Preview
 ## Desktop
-<img width="1920" height="1080" alt="Screenshot 2025-08-10 at 16-49-30 Weekly Class Schedule" src="https://github.com/user-attachments/assets/1c3d0dfb-892a-4ce1-87c6-4ae65d19c2e0" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b7e1dc94-dbd4-41b8-9487-4e9e0d9c6aa7" />
 
 ## Mobile
-<img width="auto" height="auto" alt="Mobile Version" src="https://github.com/user-attachments/assets/eeb9f4a6-707c-4d0d-81af-17f0a284e840" />
+<img width="auto" height="auto" alt="Mobile Version" src="https://github.com/user-attachments/assets/e9dd4175-f1e8-42dc-ba98-9cbc4beb1d51" />
 
 # Things to maybe do when I feel like it:
 - [x] Highlight ongoing classes
