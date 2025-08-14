@@ -1,255 +1,873 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Class Schedule</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            --color-background: #ffffff;
-            --color-container-bg: #f9fafb;
-            --color-border: #e5e7eb;
-            --color-text-header: #111827;
-            --color-text-body: #374151;
-            --color-text-light: #6b7280;
-            --highlight-glow: #007bff;
-        }
-        
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
-
-        body {
-            font-family: var(--font-family-sans);
-            background-color: var(--color-container-bg);
-        }
-
-        .schedule-container {
-            width: 100%;
-            height: 100%;
-            box-sizing: border-box;
-            padding: 1rem;
-        }
-        
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--color-text-header);
-            margin: 0 0 1.5rem 0;
-            padding: 0 0.5rem;
-        }
-
-        /* --- MOBILE AGENDA VIEW (Default) --- */
-        .agenda-view {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .agenda-day { display: flex; flex-direction: column; gap: 1rem; }
-        .agenda-day-header { font-size: 1.125rem; font-weight: 600; color: var(--color-text-header); padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-border); margin: 0 0.5rem; }
-
-        .agenda-class {
-            background-color: var(--color-background);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            display: flex;
-            border-left: 5px solid var(--border-color);
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .agenda-class-time { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem 1.25rem; font-size: 0.8rem; font-weight: 600; color: var(--color-text-body); background-color: #f8f9fa; }
-        .agenda-class-details { padding: 1rem; flex-grow: 1; }
-        .agenda-class .code { font-weight: 600; color: var(--text-color); font-size: 1rem; margin-bottom: 0.25rem; }
-        .agenda-class .details, .agenda-class .instructor { font-weight: 500; color: var(--text-color-light); font-size: 0.875rem; line-height: 1.5; }
-        .agenda-class .instructor { text-transform: uppercase; }
-        .agenda-class .details { text-transform: none; }
-        
-        .desktop-grid-container { display: none; }
-
-        /* --- DESKTOP GRID VIEW (Activates on screens > 1024px) --- */
-        @media (min-width: 1024px) {
-            body { display: flex; justify-content: center; align-items: center; }
-            .schedule-container { max-width: 1800px; background-color: var(--color-background); border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); overflow-x: auto; border: 1px solid var(--color-border); padding: 0; }
-            .agenda-view { display: none; }
-            .desktop-grid-container { display: block; }
-            h1 { padding: 1.5rem 2rem; margin: 0; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
-
-            .schedule-grid { display: grid; grid-template-columns: 120px repeat(21, minmax(70px, 1fr)); grid-template-rows: 60px repeat(5, 120px); }
-            .time-header { grid-row: 1; text-align: left; padding-left: 10px; padding-top: 1.5rem; font-weight: 500; color: var(--color-text-light); font-size: 0.8rem; border-bottom: 1px solid var(--color-border); }
-            .day-label { font-weight: 600; color: var(--color-text-header); font-size: 1rem; border-top: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; text-align: center; position: sticky; left: 0; background-color: white; z-index: 15; }
-            
-            /* CORRECTED: Clean, solid grid lines */
-            .grid-cell-background {
-                border-top: 1px solid var(--color-border);
-                border-left: 1px solid var(--color-border); 
-            }
-
-            .class-block { 
-                z-index: 10; 
-                margin: 10px 5px; 
-                padding: 10px 15px; 
-                border-radius: 8px; 
-                overflow: hidden; 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: center; 
-                box-sizing: border-box; 
-                min-height: 100px; 
-                transition: transform 0.3s ease, box-shadow 0.3s ease; 
-                border-left: 4px solid var(--border-color);
-            }
-            .class-block .code { font-weight: 600; color: var(--text-color); font-size: 0.9rem; margin-bottom: 4px; }
-            .class-block .details, .class-block .instructor { font-weight: 400; color: var(--text-color-light); font-size: 0.8rem; line-height: 1.4; text-transform: uppercase; }
-        }
-
-        /* --- CURRENT CLASS HIGHLIGHT --- */
-        .current-class {
-            transform: scale(1.03);
-            box-shadow: 0 0 12px 4px var(--highlight-glow);
-        }
-        @media (min-width: 1024px) {
-           .current-class { transform: scale(1.02); }
-        }
-
-        /* --- COLOR PALETTE --- */
-        .color-1 { --text-color: #e65100; --border-color: #ff9800; --highlight-glow: #ff980099; --text-color-light: #f57c00; }
-        .color-2 { --text-color: #0d47a1; --border-color: #2196f3; --highlight-glow: #2196f399; --text-color-light: #1976d2; }
-        .color-3 { --text-color: #1b5e20; --border-color: #4caf50; --highlight-glow: #4caf5099; --text-color-light: #388e3c; }
-        .color-4 { --text-color: #4a148c; --border-color: #9c27b0; --highlight-glow: #9c27b099; --text-color-light: #7b1fa2; }
-        .color-5 { --text-color: #b71c1c; --border-color: #f44336; --highlight-glow: #f4433699; --text-color-light: #d32f2f; }
-        .color-6 { --text-color: #004d40; --border-color: #009688; --highlight-glow: #00968899; --text-color-light: #00796b; }
-        .color-9 { --text-color: #f57f17; --border-color: #fbc02d; --highlight-glow: #fbc02d99; --text-color-light: #f9a825; }
-        
-        @media (min-width: 1024px) {
-            .color-1 { background-color: #fff4e5; }
-            .color-2 { background-color: #e3f2fd; }
-            .color-3 { background-color: #e8f5e9; }
-            .color-4 { background-color: #f3e5f5; }
-            .color-5 { background-color: #ffebee; }
-            .color-6 { background-color: #e0f2f1; }
-            .color-9 { background-color: #fffde7; }
-        }
-
-    </style>
-</head>
-<body>
-
-<div class="schedule-container">
-    <h1>Weekly Class Schedule</h1>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Schedule Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --font-family-sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      --bg:#f9fafb;
+      --surface:#ffffff;
+      --border:#e5e7eb;
+      --text:#111827;
+      --text-2:#374151;
+      --text-3:#6b7280;
+      --accent:#2563eb;
+    }
     
-    <!-- MOBILE AGENDA VIEW -->
-    <div class="agenda-view">
-        <div class="agenda-day">
-            <div class="agenda-day-header">Monday</div>
-            <div class="agenda-class color-1" data-day="1" data-start-time="09:30" data-end-time="12:30"><div class="agenda-class-time"><span>9:30</span><span>12:30</span></div><div class="agenda-class-details"><div class="code">LNG321 S2</div><div class="details">CB1301</div><div class="instructor">RACHANEE</div></div></div>
-        </div>
-        <div class="agenda-day">
-            <div class="agenda-day-header">Tuesday</div>
-            <div class="agenda-class color-3" data-day="2" data-start-time="08:30" data-end-time="10:00"><div class="agenda-class-time"><span>8:30</span><span>10:00</span></div><div class="agenda-class-details"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div></div>
-            <div class="agenda-class color-4" data-day="2" data-start-time="10:30" data-end-time="12:30"><div class="agenda-class-time"><span>10:30</span><span>12:30</span></div><div class="agenda-class-details"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div></div>
-            <div class="agenda-class color-2" data-day="2" data-start-time="13:30" data-end-time="17:30"><div class="agenda-class-time"><span>1:30</span><span>5:30</span></div><div class="agenda-class-details"><div class="code">CPE231 S31</div><div class="details">CPE1121</div><div class="instructor">Peerapon</div></div></div>
-        </div>
-        <div class="agenda-day">
-            <div class="agenda-day-header">Wednesday</div>
-            <div class="agenda-class color-5" data-day="3" data-start-time="10:30" data-end-time="12:30"><div class="agenda-class-time"><span>10:30</span><span>12:30</span></div><div class="agenda-class-details"><div class="code">GEN101 S40</div><div class="details">GYM (KFC 3rd Floor)</div><div class="instructor">Nanthanan</div></div></div>
-            <div class="agenda-class color-6" data-day="3" data-start-time="13:30" data-end-time="16:30"><div class="agenda-class-time"><span>1:30</span><span>4:30</span></div><div class="agenda-class-details"><div class="code">GEN231 S35</div><div class="details">ONLINE</div><div class="instructor">Suthidee</div></div></div>
-        </div>
-        <div class="agenda-day">
-            <div class="agenda-day-header">Thursday</div>
-            <div class="agenda-class color-9" data-day="4" data-start-time="08:30" data-end-time="12:30"><div class="agenda-class-time"><span>8:30</span><span>12:30</span></div><div class="agenda-class-details"><div class="code">CPE222 S32</div><div class="details">LIB108</div><div class="instructor">Suthatip, Pongsagon</div></div></div>
-        </div>
-        <div class="agenda-day">
-            <div class="agenda-day-header">Friday</div>
-            <div class="agenda-class color-3" data-day="5" data-start-time="08:30" data-end-time="10:00"><div class="agenda-class-time"><span>8:30</span><span>10:00</span></div><div class="agenda-class-details"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div></div>
-            <div class="agenda-class color-4" data-day="5" data-start-time="11:30" data-end-time="12:30"><div class="agenda-class-time"><span>11:30</span><span>12:30</span></div><div class="agenda-class-details"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div></div>
-        </div>
-    </div>
-
-    <!-- DESKTOP GRID VIEW -->
-    <div class="desktop-grid-container">
-        <div class="schedule-grid">
-            <script>
-                const grid = document.querySelector('.schedule-grid');
-                const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-                const timeHeaders = ["8:00", "8:30", "9:00", "9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "1:00", "1:30", "2:00", "2:30", "3:00", "3:30", "4:00", "4:30", "5:00", "5:30"];
-                
-                const corner = document.createElement('div');
-                corner.style.cssText = "grid-row: 1; grid-column: 1; border-bottom: 1px solid var(--color-border); position: sticky; left: 0; background: white; z-index: 20;";
-                grid.appendChild(corner);
-
-                for (let j = 0; j < timeHeaders.length; j++) {
-                    const timeHeader = document.createElement('div');
-                    timeHeader.className = 'time-header';
-                    timeHeader.textContent = timeHeaders[j];
-                    timeHeader.style.gridColumn = j + 2;
-                    grid.appendChild(timeHeader);
-                }
-
-                for (let i = 0; i < days.length; i++) {
-                    const dayLabel = document.createElement('div');
-                    dayLabel.className = 'day-label';
-                    dayLabel.textContent = days[i];
-                    dayLabel.style.gridRow = i + 2;
-                    grid.appendChild(dayLabel);
-                    
-                    for(let j = 0; j < 21; j++) {
-                        const cell = document.createElement('div');
-                        cell.className = 'grid-cell-background';
-                        cell.style.gridRow = i + 2;
-                        cell.style.gridColumn = j + 2;
-                        grid.appendChild(cell);
-                    }
-                }
-            </script>
-            
-            <!-- CLASS BLOCKS -->
-            <div class="class-block color-1" data-day="1" data-start-time="09:30" data-end-time="12:30" style="grid-row: 2; grid-column: 5 / 11;"><div class="code">LNG321 S2</div><div class="details">CB1301</div><div class="instructor">RACHANEE</div></div>
-            <div class="class-block color-3" data-day="2" data-start-time="08:30" data-end-time="10:00" style="grid-row: 3; grid-column: 3 / 6;"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div>
-            <div class="class-block color-4" data-day="2" data-start-time="10:30" data-end-time="12:30" style="grid-row: 3; grid-column: 7 / 11;"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div>
-            <div class="class-block color-2" data-day="2" data-start-time="13:30" data-end-time="17:30" style="grid-row: 3; grid-column: 13 / 22;"><div class="code">CPE231 S31</div><div class="details">CPE1121</div><div class="instructor">Peerapon</div></div>
-            <div class="class-block color-5" data-day="3" data-start-time="10:30" data-end-time="12:30" style="grid-row: 4; grid-column: 7 / 11;"><div class="code">GEN101 S40</div><div class="details">GYM (KFC 3rd Floor)</div><div class="instructor">Nanthanan</div></div>
-            <div class="class-block color-6" data-day="3" data-start-time="13:30" data-end-time="16:30" style="grid-row: 4; grid-column: 13 / 19;"><div class="code">GEN231 S35</div><div class="details">ONLINE</div><div class="instructor">Suthidee</div></div>
-            <div class="class-block color-9" data-day="4" data-start-time="08:30" data-end-time="12:30" style="grid-row: 5; grid-column: 3 / 11;"><div class="code">CPE222 S32</div><div class="details">LIB108</div><div class="instructor">Suthatip, Pongsagon</div></div>
-            <div class="class-block color-3" data-day="5" data-start-time="08:30" data-end-time="10:00" style="grid-row: 6; grid-column: 3 / 6;"><div class="code">MTH234 S31</div><div class="details">CB2505</div><div class="instructor">Songpon</div></div>
-            <div class="class-block color-4" data-day="5" data-start-time="11:30" data-end-time="12:30" style="grid-row: 6; grid-column: 9 / 11;"><div class="code">PHY10401 S31</div><div class="details">SC2110</div><div class="instructor">Tanapat, Thana</div></div>
-        </div>
-    </div>
-</div>
-
-<script>
-    function highlightCurrentClass() {
-        const now = new Date();
-        const currentDay = now.getDay();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        
-        const classes = document.querySelectorAll('[data-day]');
-
-        classes.forEach(el => {
-            el.classList.remove('current-class');
-
-            const classDay = parseInt(el.dataset.day, 10);
-            const startTime = el.dataset.startTime.split(':');
-            const endTime = el.dataset.endTime.split(':');
-            
-            const startMinutes = parseInt(startTime[0], 10) * 60 + parseInt(startTime[1], 10);
-            const endMinutes = parseInt(endTime[0], 10) * 60 + parseInt(endTime[1], 10);
-
-            if (classDay === currentDay && currentMinutes >= startMinutes && currentMinutes < endMinutes) {
-                el.classList.add('current-class');
-            }
-        });
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      font-family:var(--font-family-sans);
+      background:var(--bg);
+      color:var(--text);
+    }
+    .app{
+      width: 100%;
+      margin: 0;
+      padding: 8px;
+      display:flex;
+      flex-direction:column;
+      gap: 16px;
     }
 
-    highlightCurrentClass();
-    setInterval(highlightCurrentClass, 60000);
-</script>
+    header{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:16px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .title{
+      font-size:1.25rem;
+      font-weight:700;
+    }
+    .controls{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    select, input[type="text"]{
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:8px 10px;
+      background:#fff;
+      color:var(--text-2);
+      min-width: 140px;
+    }
+    button{
+      background:#fff;
+      border:1px solid var(--border);
+      color:var(--text);
+      border-radius:8px;
+      padding:8px 12px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    button.primary{
+      background:var(--accent);
+      border-color:var(--accent);
+      color:#fff;
+    }
+    button.danger{
+      background:#fee2e2;
+      border-color:#fecaca;
+      color:#991b1b;
+    }
+    .toggle{
+      display:flex;align-items:center;gap:8px;color:var(--text-2);font-weight:500;
+    }
+    .container{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:12px;
+      overflow:hidden;
+    }
 
+    /* Views */
+    .views{
+      display:flex;
+      flex-direction:column;
+    }
+    .view-tabs{
+      display:flex;
+      gap:4px;
+      border-bottom:1px solid var(--border);
+      background:#fff;
+      padding:8px;
+    }
+    .view-tabs button{
+      border:none;background:transparent;padding:10px 12px;border-bottom:2px solid transparent;color:var(--text-2);
+    }
+    .view-tabs button.active{border-color:var(--accent);color:var(--text);font-weight:700}
+    .view{
+      display:none;padding:12px;
+    }
+    .view.active{display:block}
+
+    /* Grid (desktop) */
+    .grid-wrap{
+      width:100%;
+      overflow:auto;
+    }
+    .schedule-grid{
+      display:grid;
+      grid-template-columns: 100px repeat(20, 1fr);
+      grid-template-rows: 48px repeat(5, 120px);
+      width: 100%;
+      min-width: unset;
+      position:relative;
+    }
+    .corner{
+      grid-row:1;grid-column:1;
+      position:sticky;left:0;background:#fff;z-index:3;border-bottom:1px solid var(--border);
+    }
+    .time-header{
+      grid-row:1;
+      text-align:left; padding: 14px 8px 0 8px;
+      color:var(--text-3); font-size:0.8rem; font-weight:600;
+      border-bottom:1px solid var(--border);
+      white-space:nowrap;
+    }
+    .day-label{
+      font-weight:700; display:flex;align-items:center;justify-content:center;
+      border-top:1px solid var(--border);
+      position:sticky;left:0;background:#fff;z-index:2;
+      color:var(--text);
+    }
+    .grid-cell{
+      border-top:1px solid var(--border);
+      border-left:1px solid var(--border);
+    }
+
+    .class-block{
+      position:relative;
+      margin:8px 4px;
+      padding:10px 12px;
+      border-radius:8px;
+      background:var(--cbg,#f3f4f6);
+      border-left:4px solid var(--cbor,#9ca3af);
+      color:var(--ctx,#111827);
+      display:flex;flex-direction:column;gap:4px;
+      cursor:pointer;
+      transition:transform .15s ease, box-shadow .15s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+    .class-block:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(0,0,0,.08)}
+    .class-code{font-weight:700;font-size:.95rem;color:var(--ctx,#111827)}
+    .class-sub{font-size:.8rem;text-transform:uppercase}
+
+    /* Agenda (mobile-first) */
+    .agenda{
+      padding: 0;
+      display:flex;flex-direction:column;gap:16px;
+    }
+    .agenda-day{display:flex;flex-direction:column;gap:10px}
+    .agenda-day h3{
+      margin:0;padding:6px 4px;border-bottom:2px solid var(--border);font-size:1rem
+    }
+    .agenda-item{
+      background:#fff;border:1px solid var(--border);border-radius:10px;
+      display:flex;overflow:hidden
+    }
+    .agenda-time{
+      min-width:90px;background:#f3f4f6;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:10px;font-weight:700;color:var(--text-2);font-size:.8rem
+    }
+    .agenda-content{
+      flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:4px
+    }
+    .agenda-content .code{font-weight:700}
+    .agenda-content .meta{font-size:.85rem;color:var(--text-2);display:flex;gap:10px;flex-wrap:wrap}
+
+    /* Modal */
+    .modal{
+      position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:50
+    }
+    .modal.show{display:flex}
+    .backdrop{position:absolute;inset:0;background:rgba(0,0,0,.2)}
+    .dialog{
+      position:relative;background:#fff;border:1px solid var(--border);border-radius:12px;
+      width: min(720px, calc(100% - 24px)); padding:16px; z-index:1
+    }
+    .dialog h2{margin:0 0 12px 0;font-size:1.1rem}
+    .form{
+      display:grid;grid-template-columns:1fr 1fr;gap:12px
+    }
+    .form .full{grid-column:1/-1}
+    .form label{display:flex;flex-direction:column;gap:6px;font-weight:600;color:var(--text)}
+    .form input[type="text"], .form select, .form input[type="color"]{
+      border:1px solid var(--border);border-radius:8px;padding:8px 10px
+    }
+    .color-tabs{display:flex;gap:8px;margin:6px 0}
+    .color-tabs button{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:#fff}
+    .color-tabs button.active{border-color:var(--accent);color:var(--accent);font-weight:700}
+    .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .swatch{
+      border-radius:8px;border:1px solid var(--border);padding:8px;display:flex;align-items:center;gap:10px;cursor:pointer
+    }
+    .swatch .preview{
+      width:22px;height:22px;border-radius:6px;border-left:5px solid currentColor
+    }
+    .dialog-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+
+    /* Responsive: use agenda by default, grid on wider screens */
+    @media(min-width:1024px){
+      .view--grid{display:block}
+      .view--agenda{display:none}
+      .view.active.view--agenda{display:none}
+      .view.active.view--grid{display:block}
+    }
+    @media(max-width:1023.98px){
+      .view--grid{display:none}
+      .view--agenda{display:block}
+      .view.active.view--agenda{display:block}
+      .view.active.view--grid{display:none}
+    }
+    /* Desktop-only tweaks */
+    @media (min-width: 1024px) {
+      /* Vertically center the schedule in the container */
+      #gridView {
+        display: flex;
+        align-items: center;
+        justify-content: center; /* optional, for horizontal centering too */
+        min-height: calc(100vh - 200px); /* adjust offset for your header/footer */
+      }
+
+      .grid-wrap {
+        overflow-x: hidden;
+        max-width: 100%;
+      }
+
+      .schedule-grid {
+        box-sizing: border-box; /* include borders in width calc */
+      }
+    }
+    @media (max-width: 1023.98px) {
+      .agenda-content .meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px; /* small vertical gap */
+      }
+    }
+  </style>
+  
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">Schedule Maker</div>
+      <div class="controls">
+        <select id="profileSelect" title="Profiles"></select>
+        <button id="newProfileBtn">New</button>
+        <button id="renameProfileBtn">Rename</button>
+        <button id="duplicateProfileBtn">Duplicate</button>
+        <button id="deleteProfileBtn" class="danger">Delete</button>
+        <button id="addClassBtn" class="primary">Add class</button>
+        <label class="toggle">
+          <input type="checkbox" id="timeFormatToggle" />
+          <span>24h</span>
+        </label>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="views">
+
+        <!-- GRID VIEW -->
+        <div class="view view--grid active" id="gridView">
+          <div class="grid-wrap">
+            <div id="grid" class="schedule-grid"></div>
+          </div>
+        </div>
+
+        <!-- AGENDA VIEW -->
+        <div class="view view--agenda" id="agendaView">
+          <div class="agenda" id="agenda"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Class Modal -->
+  <div class="modal" id="classModal" aria-hidden="true">
+    <div class="backdrop"></div>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="classModalTitle">
+      <h2 id="classModalTitle">Add class</h2>
+      <div class="form" id="classForm">
+        <input type="hidden" id="classId" />
+        <label>
+          Day
+          <select id="classDay">
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+          </select>
+        </label>
+        <label>
+          Start time
+          <select id="classStart"></select>
+        </label>
+        <label>
+          End time
+          <select id="classEnd"></select>
+        </label>
+        <label class="full">
+          Name + Section
+          <input type="text" id="classCode" placeholder="e.g., LNG321 S32" />
+        </label>
+        <label>
+          Location
+          <input type="text" id="classLocation" placeholder="e.g., CB1301" />
+        </label>
+        <label>
+          Professor(s)
+          <input type="text" id="classInstructor" placeholder="e.g., RACHANEE" />
+        </label>
+
+        <div class="full">
+          <div style="font-weight:700;margin-top:6px">Color</div>
+          <div class="color-tabs">
+            <button type="button" class="colorTab active" data-tab="palettes">Palettes</button>
+            <button type="button" class="colorTab" data-tab="custom">Custom</button>
+          </div>
+          <div id="palettePanel">
+            <div class="swatches" id="paletteSwatches"></div>
+          </div>
+          <div id="customPanel" style="display:none;margin-top:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <label>
+              Background
+              <input type="color" id="customBg" value="#e3f2fd" />
+            </label>
+            <label>
+              Border (left)
+              <input type="color" id="customBorder" value="#2196f3" />
+            </label>
+            <label>
+              Text
+              <input type="color" id="customText" value="#0d47a1" />
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button id="deleteClassBtn" class="danger" style="margin-right:auto;display:none">Delete class</button>
+        <button id="cancelClassBtn">Cancel</button>
+        <button id="saveClassBtn" class="primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --------- Constants and Utilities ---------
+    const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+    const START_MIN = 8 * 60;  // 8:00
+    const END_MIN   = 17.5 * 60;   // 17:30
+    const SLOT = 30; // minutes
+
+    // Handle overnight by adding 24h when end is "before" start
+    let effectiveEnd = END_MIN;
+    if (effectiveEnd <= START_MIN) {
+      effectiveEnd += 24 * 60; // 24h wrap
+    }
+
+    const SLOTS = Array.from(
+      { length: ((effectiveEnd - START_MIN) / SLOT) + 1 },
+      (_, i) => (START_MIN + i * SLOT) % (24 * 60) // modulo 24h to get display times
+    );
+
+    const PALETTES = [
+      { id:"orange", name:"Orange", bg:"#fff4e5", border:"#ff9800", text:"#e65100" },
+      { id:"blue",   name:"Blue",   bg:"#e3f2fd", border:"#2196f3", text:"#0d47a1" },
+      { id:"green",  name:"Green",  bg:"#e8f5e9", border:"#4caf50", text:"#1b5e20" },
+      { id:"purple", name:"Purple", bg:"#f3e5f5", border:"#9c27b0", text:"#4a148c" },
+      { id:"red",    name:"Red",    bg:"#ffebee", border:"#f44336", text:"#b71c1c" },
+      { id:"teal",   name:"Teal",   bg:"#e0f2f1", border:"#009688", text:"#004d40" },
+      { id:"amber",  name:"Amber",  bg:"#fffde7", border:"#fbc02d", text:"#f57f17" },
+      { id:"gray",   name:"Gray",   bg:"#f3f4f6", border:"#9ca3af", text:"#374151" },
+    ];
+
+    const STORAGE_KEY = "scheduleMaker.profiles.v1";
+    const ACTIVE_KEY  = "scheduleMaker.activeProfile.v1";
+    const PREFS_KEY   = "scheduleMaker.prefs.v1"; // global prefs like time format
+
+    function pad(n){ return String(n).padStart(2,"0"); }
+    function toMinutes(str){ const [h,m] = str.split(":").map(Number); return h*60+m; }
+    function minutesToHHMM(mins){ const h=Math.floor(mins/60), m=mins%60; return pad(h)+":"+pad(m); }
+    function formatTime(mins, use24){
+      if(use24) return minutesToHHMM(mins);
+      let h = Math.floor(mins/60);
+      const m = mins%60;
+      const ampm = h>=12 ? "PM":"AM";
+      h = (h%12)||12;
+      return `${h}:${pad(m)} ${ampm}`;
+    }
+
+    function genId(){ return Math.random().toString(36).slice(2,10); }
+
+    // --------- State ---------
+    let profiles = {};    // {id: {id, name, classes:[...]} }
+    let activeProfileId = null;
+    let prefs = { time24: true };
+
+    // Preload default "Computer Engineering" profile from the provided schedule
+    function defaultProfiles(){
+      const ce = {
+        id: genId(),
+        name: "Computer Engineering",
+        classes: [
+          // day: 1=Mon..5=Fri
+          { id:genId(), day:1, start:"09:30", end:"12:30", code:"LNG321 S2",   location:"CB1301",            instructor:"RACHANEE",         color:{type:"palette", id:"orange"} },
+          { id:genId(), day:2, start:"08:30", end:"10:00", code:"MTH234 S31",  location:"CB2505",            instructor:"Songpon",          color:{type:"palette", id:"green"} },
+          { id:genId(), day:2, start:"10:30", end:"12:30", code:"PHY10401 S31",location:"SC2110",            instructor:"Tanapat, Thana",   color:{type:"palette", id:"purple"} },
+          { id:genId(), day:2, start:"13:30", end:"17:30", code:"CPE231 S31",  location:"CPE1121",           instructor:"Peerapon",         color:{type:"palette", id:"blue"} },
+          { id:genId(), day:3, start:"10:30", end:"12:30", code:"GEN101 S40",  location:"GYM (KFC 3rd Floor)",instructor:"Nanthanan",        color:{type:"palette", id:"red"} },
+          { id:genId(), day:3, start:"13:30", end:"16:30", code:"GEN231 S35",  location:"ONLINE",            instructor:"Suthidee",         color:{type:"palette", id:"teal"} },
+          { id:genId(), day:4, start:"08:30", end:"12:30", code:"CPE222 S32",  location:"LIB108",            instructor:"Suthatip, Pongsagon", color:{type:"palette", id:"amber"} },
+          { id:genId(), day:5, start:"08:30", end:"10:00", code:"MTH234 S31",  location:"CB2505",            instructor:"Songpon",          color:{type:"palette", id:"green"} },
+          { id:genId(), day:5, start:"11:30", end:"12:30", code:"PHY10401 S31",location:"SC2110",            instructor:"Tanapat, Thana",   color:{type:"palette", id:"purple"} },
+        ]
+      };
+      const blank = { id: genId(), name:"Blank", classes: [] };
+      // Prefer showing Blank first
+      return { [blank.id]: blank, [ce.id]: ce };
+    }
+
+    // --------- Storage ---------
+    function load(){
+      try{
+        profiles = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        activeProfileId = localStorage.getItem(ACTIVE_KEY);
+        prefs = JSON.parse(localStorage.getItem(PREFS_KEY)) || { time24: true };
+      }catch{ profiles={}; activeProfileId=null; prefs={ time24:true }; }
+      if(Object.keys(profiles).length===0){
+        profiles = defaultProfiles();
+        const first = Object.values(profiles).find(p=>p.name==="Blank") || Object.values(profiles)[0];
+        activeProfileId = first.id;
+        save();
+      }
+      if(!profiles[activeProfileId]){
+        activeProfileId = Object.keys(profiles)[0];
+      }
+    }
+    function save(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+      localStorage.setItem(ACTIVE_KEY, activeProfileId);
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    }
+
+    // --------- UI Elements ---------
+    const profileSelect = document.getElementById("profileSelect");
+    const newProfileBtn = document.getElementById("newProfileBtn");
+    const renameProfileBtn = document.getElementById("renameProfileBtn");
+    const duplicateProfileBtn = document.getElementById("duplicateProfileBtn");
+    const deleteProfileBtn = document.getElementById("deleteProfileBtn");
+    const addClassBtn = document.getElementById("addClassBtn");
+    const timeFormatToggle = document.getElementById("timeFormatToggle");
+    const gridEl = document.getElementById("grid");
+    const agendaEl = document.getElementById("agenda");
+    const tabBtns = document.querySelectorAll(".tabBtn");
+
+    // Modal
+    const modal = document.getElementById("classModal");
+    const backdrop = modal.querySelector(".backdrop");
+    const modalTitle = document.getElementById("classModalTitle");
+    const classIdInput = document.getElementById("classId");
+    const dayInput = document.getElementById("classDay");
+    const startInput = document.getElementById("classStart");
+    const endInput = document.getElementById("classEnd");
+    const codeInput = document.getElementById("classCode");
+    const locationInput = document.getElementById("classLocation");
+    const instructorInput = document.getElementById("classInstructor");
+    const paletteSwatches = document.getElementById("paletteSwatches");
+    const customBg = document.getElementById("customBg");
+    const customBorder = document.getElementById("customBorder");
+    const customText = document.getElementById("customText");
+    const colorTabs = document.querySelectorAll(".colorTab");
+    const palettePanel = document.getElementById("palettePanel");
+    const customPanel = document.getElementById("customPanel");
+    const saveClassBtn = document.getElementById("saveClassBtn");
+    const cancelClassBtn = document.getElementById("cancelClassBtn");
+    const deleteClassBtn = document.getElementById("deleteClassBtn");
+
+    let editingClass = null; // object reference in current profile
+    let colorChoice = { type:"palette", id:"blue" };
+
+    // --------- Initialization ---------
+    function initTimeOptions(){
+      startInput.innerHTML = "";
+      endInput.innerHTML = "";
+      const use24 = prefs.time24;
+      // generate options only for valid 30-minute ticks
+      for(let i=0;i<SLOTS.length;i++){
+        const t = SLOTS[i];
+        const label = formatTime(t, use24);
+        const opt1 = document.createElement("option");
+        opt1.value = minutesToHHMM(t);
+        opt1.textContent = label;
+        startInput.appendChild(opt1);
+        // end options reuse same list; clone
+        const opt2 = document.createElement("option");
+        opt2.value = minutesToHHMM(t);
+        opt2.textContent = label;
+        endInput.appendChild(opt2);
+      }
+    }
+
+    function renderProfileSelect(){
+      profileSelect.innerHTML = "";
+      Object.values(profiles).sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{
+        const opt=document.createElement("option");
+        opt.value=p.id; opt.textContent=p.name;
+        profileSelect.appendChild(opt);
+      });
+      profileSelect.value = activeProfileId;
+    }
+
+    function paletteById(id){ return PALETTES.find(p=>p.id===id) || PALETTES[0]; }
+
+    function classStyle(color){
+      if(color?.type==="custom"){
+        return `--cbg:${color.bg};--cbor:${color.border};--ctx:${color.text};`;
+      }
+      const pal = paletteById(color?.id);
+      return `--cbg:${pal.bg};--cbor:${pal.border};--ctx:${pal.text};`;
+    }
+
+    function buildGrid(){
+      gridEl.innerHTML = "";
+      // Corner
+      const corner = document.createElement("div");
+      corner.className="corner";
+      gridEl.appendChild(corner);
+      // Time headers
+      for(let i=0;i<SLOTS.length;i++){
+        const th = document.createElement("div");
+        th.className="time-header";
+        th.style.gridColumn = (i+2);
+        th.textContent = formatTime(SLOTS[i], prefs.time24);
+        gridEl.appendChild(th);
+      }
+      // Day labels + grid lines
+      for(let d=0; d<DAYS.length; d++){
+        const dl = document.createElement("div");
+        dl.className="day-label";
+        dl.style.gridRow = (d+2);
+        dl.textContent = DAYS[d];
+        gridEl.appendChild(dl);
+
+        for(let c=0; c<SLOTS.length; c++){
+          const cell = document.createElement("div");
+          cell.className="grid-cell";
+          cell.style.gridRow = (d+2);
+          cell.style.gridColumn = (c+2);
+          gridEl.appendChild(cell);
+        }
+      }
+
+      // Class blocks
+      const prof = profiles[activeProfileId];
+      if(!prof) return;
+      for(const cls of prof.classes){
+        const r = cls.day + 1; // row
+        const start = toMinutes(cls.start);
+        const end = toMinutes(cls.end);
+        // Constrain to grid
+        const sIdx = Math.max(0, Math.min(SLOTS.length-1, Math.round((start-START_MIN)/SLOT)));
+        const eIdx = Math.max(0, Math.min(SLOTS.length, Math.round((end-START_MIN)/SLOT)));
+        if(eIdx <= sIdx) continue;
+
+        const block = document.createElement("div");
+        block.className = "class-block";
+        block.style.gridRow = r;
+        block.style.gridColumn = (sIdx+2) + " / " + (eIdx+2);
+        block.style.cssText += classStyle(cls.color);
+        block.dataset.id = cls.id;
+
+        const code = document.createElement("div");
+        code.className="class-code";
+        code.textContent = cls.code;
+
+        const sub1 = document.createElement("div");
+        sub1.className = "class-sub";
+        sub1.style.cssText += classStyle(cls.color); // colorise location
+        sub1.textContent = cls.location;
+
+        const sub2 = document.createElement("div");
+        sub2.className = "class-sub";
+        sub2.style.cssText += classStyle(cls.color); // colorise professor
+        sub2.textContent = cls.instructor;
+
+        block.appendChild(code);
+        block.appendChild(sub1);
+        block.appendChild(sub2);
+
+        block.addEventListener("click", ()=> openClassModal(cls));
+        gridEl.appendChild(block);
+      }
+    }
+
+    function buildAgenda(){
+      agendaEl.innerHTML = "";
+      const prof = profiles[activeProfileId];
+      if(!prof) return;
+
+      for(let d=1; d<=5; d++){
+        const items = prof.classes
+          .filter(c=>c.day===d)
+          .sort((a,b)=> toMinutes(a.start)-toMinutes(b.start));
+        const dayWrap = document.createElement("div");
+        dayWrap.className="agenda-day";
+        const h3 = document.createElement("h3");
+        h3.textContent = DAYS[d-1];
+        dayWrap.appendChild(h3);
+
+        if(items.length===0){
+          const empty = document.createElement("div");
+          empty.style.color="var(--text-3)";
+          empty.style.fontSize=".9rem";
+          empty.textContent = "No classes.";
+          dayWrap.appendChild(empty);
+        }
+
+        for(const cls of items){
+          const row = document.createElement("div");
+          row.className="agenda-item";
+          row.dataset.id = cls.id;
+
+          const t = document.createElement("div");
+          t.className="agenda-time";
+          t.style.cssText += classStyle(cls.color);
+          t.style.color = "var(--ctx)";
+          t.style.background = ""; // remove the block background if you want neutral
+          t.style.borderLeft = `5px solid var(--cbor)`; // thin vertical color bar
+          t.innerHTML = `<div>${formatTime(toMinutes(cls.start), prefs.time24)}</div><div>${formatTime(toMinutes(cls.end), prefs.time24)}</div>`;
+
+          const cont = document.createElement("div");
+          cont.className="agenda-content";
+          cont.innerHTML = `
+              <div class="code" style="${classStyle(cls.color)};color:var(--ctx)">${cls.code}</div>
+              <div class="meta">
+                <span style="${classStyle(cls.color)};color:var(--ctx)">${cls.location}</span>
+                <span style="${classStyle(cls.color)};color:var(--ctx)">${cls.instructor}</span>
+              </div>
+            `;
+
+          row.appendChild(t);
+          row.appendChild(cont);
+          row.addEventListener("click", ()=> openClassModal(cls));
+          agendaEl.appendChild(dayWrap);
+          dayWrap.appendChild(row);
+        }
+
+        agendaEl.appendChild(dayWrap);
+      }
+    }
+
+    function render(){
+      renderProfileSelect();
+      timeFormatToggle.checked = !!prefs.time24;
+      initTimeOptions();
+      buildGrid();
+      buildAgenda();
+    }
+
+    // --------- Modal Logic ---------
+    function renderPaletteSwatches(){
+      paletteSwatches.innerHTML = "";
+      PALETTES.forEach(p=>{
+        const el = document.createElement("div");
+        el.className = "swatch";
+        el.dataset.id = p.id;
+        el.innerHTML = `
+          <div class="preview" style="background:${p.bg};color:${p.border}"></div>
+          <div>
+            <div style="font-weight:700">${p.name}</div>
+            <div style="font-size:.75rem;color:var(--text-3)">${p.bg} / ${p.border} / ${p.text}</div>
+          </div>
+        `;
+        el.addEventListener("click", ()=>{
+          colorChoice = { type:"palette", id:p.id };
+          // visual select (border highlight)
+          [...paletteSwatches.children].forEach(c=> c.style.outline="none");
+          el.style.outline = `2px solid var(--accent)`;
+        });
+        paletteSwatches.appendChild(el);
+      });
+    }
+
+    function setColorTab(tab){
+      [...colorTabs].forEach(b=> b.classList.toggle("active", b.dataset.tab===tab));
+      palettePanel.style.display = tab==="palettes" ? "block":"none";
+      customPanel.style.display = tab==="custom" ? "grid":"none";
+    }
+
+    function openClassModal(cls=null){
+      editingClass = cls;
+      modal.classList.add("show");
+      modal.setAttribute("aria-hidden","false");
+      modalTitle.textContent = cls ? "Edit class" : "Add class";
+      deleteClassBtn.style.display = cls ? "inline-flex" : "none";
+
+      // Prefill
+      classIdInput.value = cls?.id || "";
+      dayInput.value = String(cls?.day || 1);
+      // Time defaults
+      const defStart = "08:00";
+      const defEnd = "09:00";
+      startInput.value = cls?.start || defStart;
+      endInput.value = cls?.end || defEnd;
+      codeInput.value = cls?.code || "";
+      locationInput.value = cls?.location || "";
+      instructorInput.value = cls?.instructor || "";
+
+      // Color
+      if(cls?.color?.type==="custom"){
+        colorChoice = { ...cls.color };
+        setColorTab("custom");
+        customBg.value = cls.color.bg || "#e3f2fd";
+        customBorder.value = cls.color.border || "#2196f3";
+        customText.value = cls.color.text || "#0d47a1";
+      }else{
+        colorChoice = { type:"palette", id: (cls?.color?.id || "blue") };
+        setColorTab("palettes");
+        [...paletteSwatches.children].forEach(c=> c.style.outline = (c.dataset.id===colorChoice.id) ? `2px solid var(--accent)` : "none");
+      }
+    }
+
+    function closeClassModal(){
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden","true");
+      editingClass = null;
+    }
+
+    function validateTimes(s,e){
+      const sm = toMinutes(s), em = toMinutes(e);
+      if(sm<START_MIN || em>END_MIN) return "Time must be within 08:00 to 17:30.";
+      if((sm-START_MIN)%SLOT!==0 || (em-START_MIN)%SLOT!==0) return "Times must be in 30-minute steps.";
+      if(em<=sm) return "End time must be after start time.";
+      return null;
+    }
+
+    // --------- Profile Actions ---------
+    function setActiveProfile(id){
+      activeProfileId = id;
+      save(); render();
+    }
+
+    function createProfile(name="New Profile"){
+      const p = { id: genId(), name, classes: [] };
+      profiles[p.id] = p;
+      setActiveProfile(p.id);
+    }
+
+    function renameProfile(){
+      const p = profiles[activeProfileId];
+      if(!p) return;
+      const name = prompt("Rename profile:", p.name);
+      if(!name) return;
+      p.name = name.trim() || p.name;
+      save(); render();
+    }
+
+    function duplicateProfile(){
+      const p = profiles[activeProfileId];
+      if(!p) return;
+      const clone = { id: genId(), name: p.name + " (Copy)", classes: p.classes.map(c=> ({...c, id: genId()})) };
+      profiles[clone.id] = clone;
+      setActiveProfile(clone.id);
+    }
+
+    function deleteProfile(){
+      const keys = Object.keys(profiles);
+      if(keys.length<=1){ alert("At least one profile must remain."); return; }
+      const p = profiles[activeProfileId];
+      if(!p) return;
+      if(!confirm(`Delete profile "${p.name}"? This cannot be undone.`)) return;
+      delete profiles[p.id];
+      activeProfileId = Object.keys(profiles)[0];
+      save(); render();
+    }
+
+    // --------- Class Actions ---------
+    function upsertClass(){
+      const p = profiles[activeProfileId];
+      if(!p) return;
+
+      const id = classIdInput.value || genId();
+      const day = parseInt(dayInput.value,10);
+      const start = startInput.value;
+      const end = endInput.value;
+      const code = (codeInput.value||"").trim();
+      const location = (locationInput.value||"").trim();
+      const instructor = (instructorInput.value||"").trim();
+
+      const err = validateTimes(start,end);
+      if(err){ alert(err); return; }
+      if(!code){ alert("Please enter Name + Section."); return; }
+
+      let color = null;
+      const tab = [...colorTabs].find(b=>b.classList.contains("active"))?.dataset.tab || "palettes";
+      if(tab==="custom"){
+        color = { type:"custom", bg: customBg.value, border: customBorder.value, text: customText.value };
+      }else{
+        color = { type:"palette", id: colorChoice.id || "blue" };
+      }
+
+      const payload = { id, day, start, end, code, location, instructor, color };
+
+      const idx = p.classes.findIndex(c=>c.id===id);
+      if(idx>=0){ p.classes[idx] = payload; } else { p.classes.push(payload); }
+      save(); render(); closeClassModal();
+    }
+
+    function removeClass(){
+      const p = profiles[activeProfileId];
+      if(!p || !editingClass) return;
+      if(!confirm(`Delete class "${editingClass.code}"?`)) return;
+      p.classes = p.classes.filter(c=>c.id !== editingClass.id);
+      save(); render(); closeClassModal();
+    }
+
+    // --------- Events ---------
+    window.addEventListener("DOMContentLoaded", ()=>{
+      load();
+      renderPaletteSwatches();
+      render();
+
+      profileSelect.addEventListener("change", e=> setActiveProfile(e.target.value));
+      newProfileBtn.addEventListener("click", ()=> createProfile("New Profile"));
+      renameProfileBtn.addEventListener("click", renameProfile);
+      duplicateProfileBtn.addEventListener("click", duplicateProfile);
+      deleteProfileBtn.addEventListener("click", deleteProfile);
+      addClassBtn.addEventListener("click", ()=> openClassModal(null));
+
+      timeFormatToggle.addEventListener("change", e=>{
+        prefs.time24 = !!e.target.checked;
+        save(); render();
+      });
+
+      // Modal interactions
+      backdrop.addEventListener("click", closeClassModal);
+      cancelClassBtn.addEventListener("click", closeClassModal);
+      saveClassBtn.addEventListener("click", upsertClass);
+      deleteClassBtn.addEventListener("click", removeClass);
+
+      colorTabs.forEach(tab=>{
+        tab.addEventListener("click", ()=> setColorTab(tab.dataset.tab));
+      });
+    });
+  </script>
 </body>
 </html>
