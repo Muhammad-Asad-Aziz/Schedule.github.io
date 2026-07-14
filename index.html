@@ -303,6 +303,10 @@
           <span>24h</span>
         </label>
         <label class="toggle">
+          <input type="checkbox" id="weekendToggle" />
+          <span>Show Sat/Sun</span>
+        </label>
+        <label class="toggle">
           <input type="checkbox" id="darkModeToggle" />
           <span>🌙 Dark</span>
         </label>
@@ -336,13 +340,7 @@
         <input type="hidden" id="classId" />
         <label>
           Day
-          <select id="classDay">
-            <option value="1">Monday</option>
-            <option value="2">Tuesday</option>
-            <option value="3">Wednesday</option>
-            <option value="4">Thursday</option>
-            <option value="5">Friday</option>
-          </select>
+          <select id="classDay"></select>
         </label>
         <label>
           Start time
@@ -400,7 +398,8 @@
 
   <script>
     // --------- Constants and Utilities ---------
-    const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+    const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const WEEKDAY_COUNT = 5;
     const START_MIN = 8 * 60;  // 8:00
     const END_MIN   = 17.5 * 60;   // 17:30
     const SLOT = 30; // minutes
@@ -454,7 +453,7 @@
     // --------- State ---------
     let profiles = {};    // {id: {id, name, classes:[...]} }
     let activeProfileId = null;
-    let prefs = { time24: true, darkMode: false };
+    let prefs = { time24: true, darkMode: false, showWeekends: false };
 
     // Preload default "Computer Engineering" profile from the provided schedule
     function defaultProfiles(){
@@ -462,7 +461,7 @@
         id: genId(),
         name: "Computer Engineering",
         classes: [
-          // day: 1=Mon..5=Fri
+          // day: 1=Mon..7=Sun
           { id:genId(), day:1, start:"09:30", end:"12:30", code:"LNG321 S2",   location:"CB1301",            instructor:"RACHANEE",         color:{type:"palette", id:"orange"} },
           { id:genId(), day:2, start:"08:30", end:"10:00", code:"MTH234 S31",  location:"CB2505",            instructor:"Songpon",          color:{type:"palette", id:"green"} },
           { id:genId(), day:2, start:"10:30", end:"12:30", code:"PHY10401 S31",location:"SC2110",            instructor:"Tanapat, Thana",   color:{type:"palette", id:"purple"} },
@@ -484,9 +483,10 @@
       try{
         profiles = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
         activeProfileId = localStorage.getItem(ACTIVE_KEY);
-        prefs = JSON.parse(localStorage.getItem(PREFS_KEY)) || { time24: true, darkMode: false };
+        prefs = JSON.parse(localStorage.getItem(PREFS_KEY)) || { time24: true, darkMode: false, showWeekends: false };
         if(prefs.darkMode === undefined) prefs.darkMode = false;
-      }catch{ profiles={}; activeProfileId=null; prefs={ time24:true, darkMode:false }; }
+        if(prefs.showWeekends === undefined) prefs.showWeekends = false;
+      }catch{ profiles={}; activeProfileId=null; prefs={ time24:true, darkMode:false, showWeekends:false }; }
       if(Object.keys(profiles).length===0){
         profiles = defaultProfiles();
         const first = Object.values(profiles).find(p=>p.name==="Blank") || Object.values(profiles)[0];
@@ -511,6 +511,7 @@
     const deleteProfileBtn = document.getElementById("deleteProfileBtn");
     const addClassBtn = document.getElementById("addClassBtn");
     const timeFormatToggle = document.getElementById("timeFormatToggle");
+    const weekendToggle = document.getElementById("weekendToggle");
     const darkModeToggle = document.getElementById("darkModeToggle");
     const gridEl = document.getElementById("grid");
     const agendaEl = document.getElementById("agenda");
@@ -542,6 +543,29 @@
     let colorChoice = { type:"palette", id:"blue" };
 
     // --------- Initialization ---------
+    function visibleDays(){
+      return DAYS
+        .map((name, index)=>({ name, value:index+1 }))
+        .filter(day=> prefs.showWeekends || day.value <= WEEKDAY_COUNT);
+    }
+
+    function initDayOptions(selectedDay=dayInput.value){
+      const selected = Number(selectedDay) || 1;
+      dayInput.innerHTML = "";
+      visibleDays().forEach(day=>{
+        const opt = document.createElement("option");
+        opt.value = String(day.value);
+        opt.textContent = day.name;
+        dayInput.appendChild(opt);
+      });
+
+      if([...dayInput.options].some(opt=>Number(opt.value)===selected)){
+        dayInput.value = String(selected);
+      }else{
+        dayInput.value = "1";
+      }
+    }
+
     function initTimeOptions(){
       startInput.innerHTML = "";
       endInput.innerHTML = "";
@@ -584,6 +608,8 @@
 
     function buildGrid(){
       gridEl.innerHTML = "";
+      const days = visibleDays();
+      gridEl.style.gridTemplateRows = `48px repeat(${days.length}, 120px)`;
       // Corner
       const corner = document.createElement("div");
       corner.className="corner";
@@ -597,27 +623,29 @@
         gridEl.appendChild(th);
       }
       // Day labels + grid lines
-      for(let d=0; d<DAYS.length; d++){
+      days.forEach((day, rowIndex)=>{
         const dl = document.createElement("div");
         dl.className="day-label";
-        dl.style.gridRow = (d+2);
-        dl.textContent = DAYS[d];
+        dl.style.gridRow = (rowIndex+2);
+        dl.textContent = day.name;
         gridEl.appendChild(dl);
 
         for(let c=0; c<SLOTS.length; c++){
           const cell = document.createElement("div");
           cell.className="grid-cell";
-          cell.style.gridRow = (d+2);
+          cell.style.gridRow = (rowIndex+2);
           cell.style.gridColumn = (c+2);
           gridEl.appendChild(cell);
         }
-      }
+      });
 
       // Class blocks
       const prof = profiles[activeProfileId];
       if(!prof) return;
       for(const cls of prof.classes){
-        const r = cls.day + 1; // row
+        const dayIndex = days.findIndex(day=>day.value===cls.day);
+        if(dayIndex === -1) continue;
+        const r = dayIndex + 2; // row
         const start = toMinutes(cls.start);
         const end = toMinutes(cls.end);
         // Constrain to grid
@@ -660,14 +688,14 @@
       const prof = profiles[activeProfileId];
       if(!prof) return;
 
-      for(let d=1; d<=5; d++){
+      for(const day of visibleDays()){
         const items = prof.classes
-          .filter(c=>c.day===d)
+          .filter(c=>c.day===day.value)
           .sort((a,b)=> toMinutes(a.start)-toMinutes(b.start));
         const dayWrap = document.createElement("div");
         dayWrap.className="agenda-day";
         const h3 = document.createElement("h3");
-        h3.textContent = DAYS[d-1];
+        h3.textContent = day.name;
         dayWrap.appendChild(h3);
 
         if(items.length===0){
@@ -715,7 +743,9 @@
     function render(){
       renderProfileSelect();
       timeFormatToggle.checked = !!prefs.time24;
+      weekendToggle.checked = !!prefs.showWeekends;
       applyDarkMode();
+      initDayOptions();
       initTimeOptions();
       buildGrid();
       buildAgenda();
@@ -760,7 +790,7 @@
 
       // Prefill
       classIdInput.value = cls?.id || "";
-      dayInput.value = String(cls?.day || 1);
+      initDayOptions(cls?.day || 1);
       // Time defaults
       const defStart = "08:00";
       const defEnd = "09:00";
@@ -893,6 +923,11 @@
 
       timeFormatToggle.addEventListener("change", e=>{
         prefs.time24 = !!e.target.checked;
+        save(); render();
+      });
+
+      weekendToggle.addEventListener("change", e=>{
+        prefs.showWeekends = !!e.target.checked;
         save(); render();
       });
 
