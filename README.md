@@ -1,3 +1,5 @@
+
+
 # My Schedule for KMUTT's Computer Engineering (Inter).
 I made... er, I mean I used AI to create this, because the schedule that KMUTT provides wasn't visually pleasing... <br>
 It works on both PC and mobile, with PC having the horitozal view and the mobile version having the vertical view.
@@ -13,7 +15,7 @@ https://muhammad-asad-aziz.github.io/Schedule.github.io/
 
 
 ## Mobile
-<img width="auto" height="auto" alt="Mobile Version" src="https://github.com/user-attachments/assets/e9dd4175-f1e8-42dc-ba98-9cbc4beb1d51" />
+<img width="1080" height="2400" alt="Screenshot_2026-07-15-22-13-43-536_org mozilla firefox" src="https://github.com/user-attachments/assets/611466b7-62bd-4675-b2a9-3f58211dec8f" />
 
 # Things to maybe do when I feel like it:
 - [x] Highlight ongoing classes
