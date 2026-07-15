@@ -31,6 +31,21 @@
     const ACTIVE_KEY  = "scheduleMaker.activeProfile.v1";
     const PREFS_KEY   = "scheduleMaker.prefs.v1"; // global prefs like time format
 
+    const SUPABASE_URL = "https://wjvaqdldinuqwcnrkdby.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_oiHjXY6qq7yAGnZ2FO957w_kZKWHp-w";
+    const TABLE_NAME = "schedule_sync";
+
+    const REVISION_KEY = "scheduleMaker.lastKnownRevision.v1";
+    const PENDING_KEY = "scheduleMaker.hasPendingChanges.v1";
+
+    let supabaseClient = null;
+    let currentUser = null;
+    let lastKnownRevision = parseInt(localStorage.getItem(REVISION_KEY) || "0", 10);
+    let hasPendingChanges = localStorage.getItem(PENDING_KEY) === "true";
+    let currentSyncStatus = "Saved locally";
+    let syncDebounceTimer = null;
+    let pendingConflictRemoteRow = null;
+
     function pad(n){ return String(n).padStart(2,"0"); }
     function toMinutes(str){ const [h,m] = str.split(":").map(Number); return h*60+m; }
     function minutesToHHMM(mins){ const h=Math.floor(mins/60), m=mins%60; return pad(h)+":"+pad(m); }
@@ -102,6 +117,20 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
       localStorage.setItem(ACTIVE_KEY, activeProfileId);
       localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+
+      hasPendingChanges = true;
+      localStorage.setItem(PENDING_KEY, "true");
+
+      if (!currentUser) {
+        updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+      } else {
+        if (!navigator.onLine) {
+          updateSyncStatusUI("Offline");
+        } else {
+          updateSyncStatusUI("Syncing…");
+          debounceSync();
+        }
+      }
     }
 
     // --------- UI Elements ---------
@@ -125,6 +154,25 @@
     const gridEl = document.getElementById("grid");
     const agendaEl = document.getElementById("agenda");
     const tabBtns = document.querySelectorAll(".tabBtn");
+
+    const syncStatusBadge = document.getElementById("syncStatusBadge");
+    const accountBtn = document.getElementById("accountBtn");
+    const accountModal = document.getElementById("accountModal");
+    const closeAccountBtn = document.getElementById("closeAccountBtn");
+    const authSignedOutView = document.getElementById("authSignedOutView");
+    const authSignedInView = document.getElementById("authSignedInView");
+    const authEmailInput = document.getElementById("authEmailInput");
+    const sendMagicLinkBtn = document.getElementById("sendMagicLinkBtn");
+    const authMsg = document.getElementById("authMsg");
+    const authUserEmail = document.getElementById("authUserEmail");
+    const modalSyncStatus = document.getElementById("modalSyncStatus");
+    const manualSyncBtn = document.getElementById("manualSyncBtn");
+    const signOutBtn = document.getElementById("signOutBtn");
+
+    const conflictModal = document.getElementById("conflictModal");
+    const choiceUploadLocalBtn = document.getElementById("choiceUploadLocalBtn");
+    const choiceUseCloudBtn = document.getElementById("choiceUseCloudBtn");
+    const choiceMergeBtn = document.getElementById("choiceMergeBtn");
 
     // Modal
     const modal = document.getElementById("classModal");
@@ -169,6 +217,406 @@
     function closeShortcuts(){
       shortcutsModal.classList.remove("show");
       shortcutsModal.setAttribute("aria-hidden", "true");
+    }
+
+    // --------- Sync & Account Functions ---------
+    function openAccountModal() {
+      accountModal.classList.add("show");
+      accountModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeAccountModal() {
+      accountModal.classList.remove("show");
+      accountModal.setAttribute("aria-hidden", "true");
+    }
+
+    function openConflictModal() {
+      conflictModal.classList.add("show");
+      conflictModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeConflictModal() {
+      conflictModal.classList.remove("show");
+      conflictModal.setAttribute("aria-hidden", "true");
+      pendingConflictRemoteRow = null;
+    }
+
+    function showAuthMsg(text, type = "info") {
+      if (!authMsg) return;
+      authMsg.textContent = text;
+      authMsg.className = `auth-msg ${type}`;
+      authMsg.style.display = text ? "block" : "none";
+    }
+
+    function updateSyncStatusUI(status) {
+      currentSyncStatus = status;
+      [syncStatusBadge, modalSyncStatus].forEach(badge => {
+        if (!badge) return;
+        badge.textContent = status;
+        badge.className = "sync-status";
+        if (status === "Synced") {
+          badge.classList.add("status-synced");
+        } else if (status === "Syncing…") {
+          badge.classList.add("status-syncing");
+        } else if (status === "Saved locally") {
+          badge.classList.add("status-saved-locally");
+        } else if (status === "Offline") {
+          badge.classList.add("status-offline");
+        }
+      });
+    }
+
+    function updateAuthUI() {
+      if (currentUser) {
+        accountBtn.textContent = currentUser.email ? currentUser.email.split("@")[0] : "Account";
+        accountBtn.title = `Signed in as ${currentUser.email}`;
+        if (authSignedOutView) authSignedOutView.style.display = "none";
+        if (authSignedInView) authSignedInView.style.display = "block";
+        if (authUserEmail) authUserEmail.textContent = currentUser.email;
+      } else {
+        accountBtn.textContent = "Sign in";
+        accountBtn.title = "Sign in / Sync";
+        if (authSignedOutView) authSignedOutView.style.display = "block";
+        if (authSignedInView) authSignedInView.style.display = "none";
+        if (authUserEmail) authUserEmail.textContent = "";
+      }
+    }
+
+    function getLocalScheduleData() {
+      return {
+        profiles: profiles,
+        activeProfileId: activeProfileId,
+        preferences: prefs
+      };
+    }
+
+    function applyCloudData(cloudData) {
+      if (!cloudData) return;
+      if (cloudData.profiles && typeof cloudData.profiles === "object" && Object.keys(cloudData.profiles).length > 0) {
+        profiles = cloudData.profiles;
+      }
+      if (cloudData.activeProfileId && profiles[cloudData.activeProfileId]) {
+        activeProfileId = cloudData.activeProfileId;
+      } else if (Object.keys(profiles).length > 0) {
+        activeProfileId = Object.keys(profiles)[0];
+      }
+      if (cloudData.preferences && typeof cloudData.preferences === "object") {
+        prefs = { ...prefs, ...cloudData.preferences };
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+      localStorage.setItem(ACTIVE_KEY, activeProfileId);
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+      render();
+    }
+
+    function mergeScheduleData(localData, remoteData) {
+      if (!remoteData || !remoteData.profiles) return localData;
+      if (!localData || !localData.profiles) return remoteData;
+
+      const mergedProfiles = {};
+
+      // Copy remote profiles
+      for (const [id, prof] of Object.entries(remoteData.profiles)) {
+        mergedProfiles[id] = JSON.parse(JSON.stringify(prof));
+      }
+
+      // Merge local profiles
+      for (const [id, localProf] of Object.entries(localData.profiles)) {
+        if (mergedProfiles[id]) {
+          const existingClasses = mergedProfiles[id].classes || [];
+          const localClasses = localProf.classes || [];
+          const classMap = new Map();
+
+          for (const c of existingClasses) {
+            const key = c.id || `${c.code}_${c.day}_${c.start}`;
+            classMap.set(key, c);
+          }
+          for (const c of localClasses) {
+            const key = c.id || `${c.code}_${c.day}_${c.start}`;
+            if (!classMap.has(key)) {
+              classMap.set(key, c);
+            }
+          }
+          mergedProfiles[id].classes = Array.from(classMap.values());
+        } else {
+          const matchingByName = Object.values(mergedProfiles).find(
+            p => (p.name || "").trim().toLowerCase() === (localProf.name || "").trim().toLowerCase()
+          );
+          if (matchingByName) {
+            const existingClasses = matchingByName.classes || [];
+            const localClasses = localProf.classes || [];
+            const classMap = new Map();
+
+            for (const c of existingClasses) {
+              const key = c.id || `${c.code}_${c.day}_${c.start}`;
+              classMap.set(key, c);
+            }
+            for (const c of localClasses) {
+              const key = c.id || `${c.code}_${c.day}_${c.start}`;
+              if (!classMap.has(key)) {
+                classMap.set(key, c);
+              }
+            }
+            matchingByName.classes = Array.from(classMap.values());
+          } else {
+            mergedProfiles[id] = JSON.parse(JSON.stringify(localProf));
+          }
+        }
+      }
+
+      const mergedActiveId =
+        (localData.activeProfileId && mergedProfiles[localData.activeProfileId])
+          ? localData.activeProfileId
+          : ((remoteData.activeProfileId && mergedProfiles[remoteData.activeProfileId])
+              ? remoteData.activeProfileId
+              : Object.keys(mergedProfiles)[0]);
+
+      const mergedPrefs = {
+        ...(remoteData.preferences || {}),
+        ...(localData.preferences || {})
+      };
+
+      return {
+        profiles: mergedProfiles,
+        activeProfileId: mergedActiveId,
+        preferences: mergedPrefs
+      };
+    }
+
+    function isDataDifferent(a, b) {
+      if (!a || !b) return true;
+      return JSON.stringify(a) !== JSON.stringify(b);
+    }
+
+    function debounceSync() {
+      clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = setTimeout(() => {
+        syncWithCloud();
+      }, 500);
+    }
+
+    async function syncWithCloud(forceMode = null) {
+      if (!supabaseClient || !currentUser) {
+        updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+        return;
+      }
+
+      if (!navigator.onLine) {
+        updateSyncStatusUI("Offline");
+        return;
+      }
+
+      updateSyncStatusUI("Syncing…");
+
+      try {
+        const { data: rows, error: fetchErr } = await supabaseClient
+          .from(TABLE_NAME)
+          .select("*")
+          .eq("user_id", currentUser.id);
+
+        if (fetchErr) {
+          console.warn("Fetch error from Supabase:", fetchErr);
+          updateSyncStatusUI("Saved locally");
+          return;
+        }
+
+        const remoteRow = rows && rows.length > 0 ? rows[0] : null;
+        const now = new Date().toISOString();
+        const currentLocalData = getLocalScheduleData();
+
+        if (!remoteRow) {
+          // First upload to cloud
+          const initialRevision = 1;
+          const { error: insertErr } = await supabaseClient
+            .from(TABLE_NAME)
+            .upsert({
+              user_id: currentUser.id,
+              data: currentLocalData,
+              revision: initialRevision,
+              updated_at: now
+            });
+
+          if (insertErr) {
+            console.warn("Insert error:", insertErr);
+            updateSyncStatusUI("Saved locally");
+            return;
+          }
+
+          lastKnownRevision = initialRevision;
+          localStorage.setItem(REVISION_KEY, String(initialRevision));
+          hasPendingChanges = false;
+          localStorage.setItem(PENDING_KEY, "false");
+          updateSyncStatusUI("Synced");
+          return;
+        }
+
+        const remoteRevision = Number(remoteRow.revision) || 1;
+        const remoteData = remoteRow.data;
+
+        if (forceMode === "upload") {
+          const nextRev = Math.max(lastKnownRevision, remoteRevision) + 1;
+          const { error: upsertErr } = await supabaseClient
+            .from(TABLE_NAME)
+            .upsert({
+              user_id: currentUser.id,
+              data: currentLocalData,
+              revision: nextRev,
+              updated_at: now
+            });
+
+          if (!upsertErr) {
+            lastKnownRevision = nextRev;
+            localStorage.setItem(REVISION_KEY, String(nextRev));
+            hasPendingChanges = false;
+            localStorage.setItem(PENDING_KEY, "false");
+            updateSyncStatusUI("Synced");
+            showToast("Uploaded local schedules to cloud");
+          } else {
+            updateSyncStatusUI("Saved locally");
+          }
+          closeConflictModal();
+          return;
+        }
+
+        if (forceMode === "use_cloud") {
+          applyCloudData(remoteData);
+          lastKnownRevision = remoteRevision;
+          localStorage.setItem(REVISION_KEY, String(remoteRevision));
+          hasPendingChanges = false;
+          localStorage.setItem(PENDING_KEY, "false");
+          updateSyncStatusUI("Synced");
+          showToast("Applied schedules from cloud");
+          closeConflictModal();
+          return;
+        }
+
+        if (forceMode === "merge") {
+          const mergedData = mergeScheduleData(currentLocalData, remoteData);
+          applyCloudData(mergedData);
+          const nextRev = Math.max(lastKnownRevision, remoteRevision) + 1;
+
+          const { error: upsertErr } = await supabaseClient
+            .from(TABLE_NAME)
+            .upsert({
+              user_id: currentUser.id,
+              data: mergedData,
+              revision: nextRev,
+              updated_at: now
+            });
+
+          if (!upsertErr) {
+            lastKnownRevision = nextRev;
+            localStorage.setItem(REVISION_KEY, String(nextRev));
+            hasPendingChanges = false;
+            localStorage.setItem(PENDING_KEY, "false");
+            updateSyncStatusUI("Synced");
+            showToast("Merged local and cloud schedules");
+          } else {
+            updateSyncStatusUI("Saved locally");
+          }
+          closeConflictModal();
+          return;
+        }
+
+        // Auto-sync checks
+        if (remoteRevision > lastKnownRevision && isDataDifferent(currentLocalData, remoteData)) {
+          pendingConflictRemoteRow = remoteRow;
+          openConflictModal();
+          return;
+        }
+
+        if (hasPendingChanges) {
+          const nextRev = Math.max(lastKnownRevision, remoteRevision) + 1;
+          const { error: upsertErr } = await supabaseClient
+            .from(TABLE_NAME)
+            .upsert({
+              user_id: currentUser.id,
+              data: currentLocalData,
+              revision: nextRev,
+              updated_at: now
+            });
+
+          if (!upsertErr) {
+            lastKnownRevision = nextRev;
+            localStorage.setItem(REVISION_KEY, String(nextRev));
+            hasPendingChanges = false;
+            localStorage.setItem(PENDING_KEY, "false");
+            updateSyncStatusUI("Synced");
+          } else {
+            updateSyncStatusUI("Saved locally");
+          }
+        } else {
+          if (remoteRevision > lastKnownRevision) {
+            applyCloudData(remoteData);
+            lastKnownRevision = remoteRevision;
+            localStorage.setItem(REVISION_KEY, String(remoteRevision));
+          }
+          updateSyncStatusUI("Synced");
+        }
+
+      } catch (err) {
+        console.warn("Sync error:", err);
+        updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+      }
+    }
+
+    async function sendMagicLink() {
+      const email = (authEmailInput.value || "").trim();
+      if (!email || !email.includes("@")) {
+        showAuthMsg("Please enter a valid email address.", "error");
+        return;
+      }
+
+      showAuthMsg("Sending magic link...", "info");
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: window.location.href.split('#')[0]
+          }
+        });
+
+        if (error) {
+          showAuthMsg(`Error: ${error.message}`, "error");
+        } else {
+          showAuthMsg("Check your email for the magic link!", "success");
+          authEmailInput.value = "";
+        }
+      } catch (err) {
+        showAuthMsg(`Failed to send link: ${err.message}`, "error");
+      }
+    }
+
+    async function handleSignOut() {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+      currentUser = null;
+      lastKnownRevision = 0;
+      localStorage.removeItem(REVISION_KEY);
+      hasPendingChanges = false;
+      localStorage.setItem(PENDING_KEY, "false");
+      updateAuthUI();
+      updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+      showToast("Signed out");
+    }
+
+    function initSupabase() {
+      if (window.supabase && typeof window.supabase.createClient === "function") {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+          currentUser = session?.user || null;
+          updateAuthUI();
+          if (currentUser) {
+            syncWithCloud();
+          } else {
+            updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+          }
+        });
+      } else {
+        updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+      }
     }
 
     // --------- Initialization ---------
@@ -677,6 +1125,46 @@
       load();
       renderPaletteSwatches();
       render();
+      initSupabase();
+
+      if (accountBtn) accountBtn.addEventListener("click", openAccountModal);
+      if (closeAccountBtn) closeAccountBtn.addEventListener("click", closeAccountModal);
+      if (accountModal) accountModal.querySelector(".backdrop").addEventListener("click", closeAccountModal);
+
+      if (sendMagicLinkBtn) sendMagicLinkBtn.addEventListener("click", sendMagicLink);
+      if (manualSyncBtn) manualSyncBtn.addEventListener("click", () => {
+        syncWithCloud();
+        showToast("Syncing...");
+      });
+      if (signOutBtn) signOutBtn.addEventListener("click", handleSignOut);
+
+      if (choiceUploadLocalBtn) choiceUploadLocalBtn.addEventListener("click", () => syncWithCloud("upload"));
+      if (choiceUseCloudBtn) choiceUseCloudBtn.addEventListener("click", () => syncWithCloud("use_cloud"));
+      if (choiceMergeBtn) choiceMergeBtn.addEventListener("click", () => syncWithCloud("merge"));
+      if (conflictModal) conflictModal.querySelector(".backdrop").addEventListener("click", closeConflictModal);
+
+      window.addEventListener("online", () => {
+        if (currentUser) {
+          if (hasPendingChanges) {
+            updateSyncStatusUI("Syncing…");
+            syncWithCloud();
+          } else {
+            updateSyncStatusUI("Synced");
+          }
+        } else {
+          updateSyncStatusUI("Saved locally");
+        }
+      });
+
+      window.addEventListener("offline", () => {
+        updateSyncStatusUI("Offline");
+      });
+
+      setInterval(() => {
+        if (currentUser && hasPendingChanges && navigator.onLine) {
+          syncWithCloud();
+        }
+      }, 15000);
 
       profileSelect.addEventListener("change", e=> setActiveProfile(e.target.value));
       newProfileBtn.addEventListener("click", ()=> createProfile("New Profile"));
@@ -702,11 +1190,13 @@
         if(event.key==="Escape"){
           if(modal.classList.contains("show")) closeClassModal();
           if(shortcutsModal.classList.contains("show")) closeShortcuts();
+          if(accountModal && accountModal.classList.contains("show")) closeAccountModal();
+          if(conflictModal && conflictModal.classList.contains("show")) closeConflictModal();
           return;
         }
         if(event.ctrlKey || event.metaKey || event.altKey || isTypingTarget(event.target)) return;
         const key = event.key.toLowerCase();
-        if(!modal.classList.contains("show") && !shortcutsModal.classList.contains("show")){
+        if(!modal.classList.contains("show") && !shortcutsModal.classList.contains("show") && !accountModal.classList.contains("show") && !conflictModal.classList.contains("show")){
           if(key==="a"){ event.preventDefault(); openClassModal(null); }
           else if(key==="e"){ event.preventDefault(); exportSchedules(); }
           else if(key==="i"){ event.preventDefault(); importFile.click(); }

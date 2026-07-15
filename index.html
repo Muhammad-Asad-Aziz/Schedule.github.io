@@ -15,13 +15,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.min.css" />
-  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="app">
     <header>
       <div class="title">Schedule Maker</div>
       <div class="controls">
+        <span id="syncStatusBadge" class="sync-status status-offline" title="Sync Status">Offline</span>
+        <button id="accountBtn" class="account-btn" title="Account / Sync">Sign in</button>
         <select id="profileSelect" title="Profiles"></select>
         <button id="newProfileBtn">New</button>
         <button id="renameProfileBtn">Rename</button>
@@ -145,6 +147,80 @@
       <div class="dialog-footer"><button id="closeShortcutsBtn" class="primary">Got it</button></div>
     </div>
   </div>
+
+  <!-- Account Modal -->
+  <div class="modal" id="accountModal" aria-hidden="true">
+    <div class="backdrop"></div>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+      <h2 id="accountModalTitle">Account & Sync</h2>
+      
+      <!-- View 1: Signed Out -->
+      <div id="authSignedOutView" class="auth-view">
+        <p style="margin:0 0 12px 0; color:var(--text-2); font-size:0.9rem;">
+          Sign in with your email to back up your schedules and sync across devices.
+        </p>
+        <div class="form-group" style="display:flex; flex-direction:column; gap:8px;">
+          <label style="font-weight:600; font-size:0.85rem;">Email address</label>
+          <input type="email" id="authEmailInput" placeholder="you@example.com" style="width:100%; font-size:0.95rem; padding:10px;" />
+          <button id="sendMagicLinkBtn" class="primary" style="margin-top:4px;">Send Magic Link</button>
+        </div>
+        <div id="authMsg" class="auth-msg" style="display:none; margin-top:12px;"></div>
+      </div>
+
+      <!-- View 2: Signed In -->
+      <div id="authSignedInView" class="auth-view" style="display:none;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div>
+            <div style="font-size:0.8rem; color:var(--text-3); font-weight:600; text-transform:uppercase;">Signed in as</div>
+            <div id="authUserEmail" style="font-weight:700; font-size:1.05rem; word-break:break-all;"></div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.85rem; color:var(--text-2); font-weight:600;">Status:</span>
+            <span id="modalSyncStatus" class="sync-status status-offline">Offline</span>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button id="manualSyncBtn" style="flex:1;">Sync Now</button>
+            <button id="signOutBtn" class="danger">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer" style="margin-top:16px;">
+        <button id="closeAccountBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- First Login / Conflict Modal -->
+  <div class="modal" id="conflictModal" aria-hidden="true">
+    <div class="backdrop"></div>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="conflictTitle" style="max-width:540px;">
+      <h2 id="conflictTitle">Data Choice Required</h2>
+      <p style="margin:0 0 16px 0; color:var(--text-2); font-size:0.9rem; line-height:1.4;">
+        We found existing schedules saved on this device and on your cloud account. How would you like to proceed?
+      </p>
+
+      <div class="conflict-options" style="display:flex; flex-direction:column; gap:10px;">
+        <button id="choiceUploadLocalBtn" class="conflict-option-btn">
+          <div class="option-title">Upload this device</div>
+          <div class="option-desc">Overwrite cloud copy with the schedules currently on this device.</div>
+        </button>
+
+        <button id="choiceUseCloudBtn" class="conflict-option-btn">
+          <div class="option-title">Use cloud copy</div>
+          <div class="option-desc">Overwrite schedules on this device with your cloud schedules.</div>
+        </button>
+
+        <button id="choiceMergeBtn" class="conflict-option-btn primary-option">
+          <div class="option-title">Merge schedules</div>
+          <div class="option-desc">Combine schedules from both cloud and this device so nothing is lost.</div>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.min.js" defer></script>
