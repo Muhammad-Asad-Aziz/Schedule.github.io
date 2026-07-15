@@ -1,19 +1,32 @@
-# My Schedule for KMUTT's Computer Engineering (Inter).
-I made... er, I mean I used AI to create this, because the schedule that KMUTT provides wasn't visually pleasing... <br>
-It works on both PC and mobile, with PC having the horitozal view and the mobile version having the vertical view.
+# Schedule Maker
 
-# Website
-https://muhammad-asad-aziz.github.io/Schedule.github.io/
+A responsive class schedule builder that works on desktop and mobile. It is hosted as a static site on GitHub Pages:
 
-# Preview
-## Desktop
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/b7e1dc94-dbd4-41b8-9487-4e9e0d9c6aa7" />
+**https://muhammad-asad-aziz.github.io/Schedule.github.io/**
 
-## Mobile
-<img width="auto" height="auto" alt="Mobile Version" src="https://github.com/user-attachments/assets/e9dd4175-f1e8-42dc-ba98-9cbc4beb1d51" />
+## Features
 
-# Things to maybe do when I feel like it:
-- [x] Highlight ongoing classes
-- [x] Add custom colors
-- [x] Function to add and remove courses
-- [ ] ~Actually learn how to use HTML, CSS, and Javascript so that you won't have to castigate AI to do it.~
+- Multiple schedule profiles with custom class colors
+- Desktop timetable and mobile agenda layouts
+- Drag and drop classes to change their day/time
+- JSON import and export for backups and sharing
+- Installable Progressive Web App (PWA) with offline support
+- Dark mode, 12/24-hour times, and optional weekends
+- Keyboard shortcuts: `A` add, `E` export, `I` import, `?` help, and `Esc` close
+- Data stays in the browser's local storage
+
+## Development
+
+The maintainable source files are `index.html`, `styles.css`, and `app.js`. GitHub Pages serves the generated `styles.min.css` and `app.min.js` files for faster loading.
+
+```bash
+npm install
+npm run check
+npm run build
+```
+
+After changing `styles.css` or `app.js`, run `npm run build` and include the regenerated minified files. No server-side components or special GitHub Pages configuration are required.
+
+## Install and offline use
+
+Open the site in a supported browser and choose **Install app** when it appears (or use the browser's “Add to Home Screen” action). Once the first visit finishes, the application shell is cached for offline use. Schedule data remains local to that browser unless exported.
