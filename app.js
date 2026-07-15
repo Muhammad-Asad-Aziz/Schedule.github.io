@@ -32,7 +32,10 @@
     const PREFS_KEY   = "scheduleMaker.prefs.v1"; // global prefs like time format
 
     const SUPABASE_URL = "https://wjvaqdldinuqwcnrkdby.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_oiHjXY6qq7yAGnZ2FO957w_kZKWHp-w";
+    // Verified anon/public key (decoded `ref` matches SUPABASE_URL exactly, valid to 2036).
+    // Using the legacy JWT anon key because it is universally accepted by supabase-js v2;
+    // the newer `sb_publishable_*` key's project segment did not match this project's ref.
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqdmFxZGxkaW51cXdjbnJrZGJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNzQyNzEsImV4cCI6MjA5OTY1MDI3MX0.gJnuujDiwXzHAenCcfq12Q6D3iaXNDPpyyCeP4iaBmw";
     const TABLE_NAME = "schedule_sync";
 
     const REVISION_KEY = "scheduleMaker.lastKnownRevision.v1";
@@ -567,6 +570,11 @@
         return;
       }
 
+      if (!supabaseClient) {
+        showAuthMsg("Sign-in service is unavailable. Check your connection and reload the page.", "error");
+        return;
+      }
+
       showAuthMsg("Sending magic link...", "info");
 
       try {
@@ -603,18 +611,26 @@
     }
 
     function initSupabase() {
-      if (window.supabase && typeof window.supabase.createClient === "function") {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        supabaseClient.auth.onAuthStateChange(async (event, session) => {
-          currentUser = session?.user || null;
-          updateAuthUI();
-          if (currentUser) {
-            syncWithCloud();
-          } else {
-            updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
-          }
-        });
-      } else {
+      try {
+        if (window.supabase && typeof window.supabase.createClient === "function") {
+          supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            currentUser = session?.user || null;
+            updateAuthUI();
+            if (currentUser) {
+              syncWithCloud();
+            } else {
+              updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+            }
+          });
+        } else {
+          updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
+        }
+      } catch (err) {
+        // Never let a Supabase init failure break the rest of the app UI
+        // (e.g. the Sign in button wiring that runs right after this).
+        console.warn("Supabase init failed; sync disabled:", err);
+        supabaseClient = null;
         updateSyncStatusUI(navigator.onLine ? "Saved locally" : "Offline");
       }
     }
@@ -1241,6 +1257,22 @@
       });
 
       if("serviceWorker" in navigator){
-        navigator.serviceWorker.register("./service-worker.js").catch(error=>console.warn("Offline support unavailable", error));
+        navigator.serviceWorker.register("./service-worker.js").then(reg=>{
+          // If a newer worker is already waiting, activate it immediately.
+          if(reg.waiting){
+            reg.waiting.postMessage({ type:"SKIP_WAITING" });
+          }
+          reg.addEventListener("updatefound", ()=>{
+            const installing = reg.installing;
+            if(!installing) return;
+            installing.addEventListener("statechange", ()=>{
+              // Reload only when an update is installed AND a controller already
+              // exists (i.e. not on the very first visit), avoiding reload loops.
+              if(installing.state==="installed" && navigator.serviceWorker.controller){
+                window.location.reload();
+              }
+            });
+          });
+        }).catch(error=>console.warn("Offline support unavailable", error));
       }
     });
